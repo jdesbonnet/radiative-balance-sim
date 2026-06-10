@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Radiative Heat Balance Simulator</title>
+    <link rel="stylesheet" href="src/styles/app.css">
+  </head>
+  <body>
+    <header class="app_header">
+      <div>
+        <h1>Radiative Heat Balance Simulator</h1>
+        <p>Shine any spectrum on a surface and watch it heat until what it radiates balances what it absorbs.</p>
+      </div>
+      <div class="playback_bar">
+        <button id="play_pause_button" type="button">Play</button>
+        <button id="reset_button" type="button">Reset</button>
+        <label>
+          Speed
+          <select id="playback_rate">
+            <option value="0.1">0.1x</option>
+            <option value="1" selected>1x</option>
+            <option value="10">10x</option>
+            <option value="100">100x</option>
+            <option value="1000">1000x</option>
+          </select>
+        </label>
+      </div>
+    </header>
+
+    <main class="app_shell">
+      <aside class="controls_panel" aria-label="Simulation controls">
+        <section class="control_group">
+          <h2>Material</h2>
+          <label>
+            Preset
+            <select id="material_preset"></select>
+          </label>
+          <div class="field_grid">
+            <label>
+              Density kg/m^3
+              <input id="density_kg_m3" type="number" min="1" step="1">
+            </label>
+            <label>
+              Specific heat J/(kg K)
+              <input id="specific_heat_J_kg_K" type="number" min="1" step="1">
+            </label>
+            <label>
+              Thermal conductivity W/(m K)
+              <input id="thermal_conductivity_W_m_K" type="number" min="0" step="0.1">
+            </label>
+            <label>
+              Thickness m
+              <input id="thickness_m" type="number" min="0.000001" step="0.0001">
+            </label>
+            <label>
+              Area m^2
+              <input id="area_m2" type="number" min="0.000001" step="0.0001">
+            </label>
+          </div>
+
+          <details>
+            <summary>Spectral curves</summary>
+            <p class="small_note">Each line is <code>wavelength_m,value</code>. Values must be between 0 and 1.</p>
+            <label>
+              Absorptivity curve
+              <textarea id="absorptivity_curve" spellcheck="false"></textarea>
+            </label>
+            <canvas id="absorptivity_curve_plot" class="mini_plot" width="320" height="90"></canvas>
+            <label>
+              Emissivity curve
+              <textarea id="emissivity_curve" spellcheck="false"></textarea>
+            </label>
+            <canvas id="emissivity_curve_plot" class="mini_plot" width="320" height="90"></canvas>
+          </details>
+        </section>
+
+        <section class="control_group">
+          <h2>Radiation</h2>
+          <label>
+            Spectrum preset
+            <select id="radiation_preset"></select>
+          </label>
+          <div class="field_grid">
+            <label>
+              Irradiance scale
+              <input id="irradiance_scale" type="number" min="0" step="0.05">
+            </label>
+            <label>
+              Incidence angle degrees
+              <input id="incidence_angle_deg" type="number" min="0" max="90" step="1">
+            </label>
+            <label>
+              Source temperature K
+              <input id="source_temperature_K" type="number" min="1" step="10">
+            </label>
+          </div>
+        </section>
+
+        <section class="control_group">
+          <h2>Environment</h2>
+          <div class="field_grid">
+            <label>
+              Initial temperature K
+              <input id="initial_temperature_K" type="number" min="1" step="1">
+            </label>
+            <label>
+              Environment temperature K
+              <input id="environment_temperature_K" type="number" min="1" step="1">
+            </label>
+            <label>
+              Emitting faces
+              <select id="active_faces">
+                <option value="both">Both</option>
+                <option value="top">Top</option>
+                <option value="bottom">Bottom</option>
+              </select>
+            </label>
+          </div>
+        </section>
+
+        <section class="control_group">
+          <h2>Conduction</h2>
+          <label class="inline_toggle">
+            <input id="conduction_enabled" type="checkbox">
+            Enable abstract conductive exchange
+          </label>
+          <label>
+            Mode
+            <select id="conduction_mode">
+              <option value="direct">Direct conductance</option>
+              <option value="geometry">Geometry based</option>
+            </select>
+          </label>
+          <div class="field_grid">
+            <label>
+              Boundary temperature K
+              <input id="boundary_temperature_K" type="number" min="1" step="1">
+            </label>
+            <label>
+              Conductance W/K
+              <input id="conductance_W_K" type="number" min="0" step="0.01">
+            </label>
+            <label>
+              Contact area m^2
+              <input id="contact_area_m2" type="number" min="0" step="0.0001">
+            </label>
+            <label>
+              Path length m
+              <input id="path_length_m" type="number" min="0" step="0.001">
+            </label>
+            <label>
+              Conductor k W/(m K)
+              <input id="conductor_thermal_conductivity_W_m_K" type="number" min="0" step="0.1">
+            </label>
+          </div>
+        </section>
+
+        <section class="control_group validation_group">
+          <h2>Status</h2>
+          <div id="validation_messages" class="validation_messages">Ready.</div>
+        </section>
+      </aside>
+
+      <section class="stage_panel" aria-label="Slab visualization and readouts">
+        <div class="readout_grid">
+          <div><span>Temperature</span><strong id="temperature_readout">-</strong></div>
+          <div><span>Equilibrium</span><strong id="equilibrium_readout">-</strong></div>
+          <div><span>Absorbed</span><strong id="absorbed_power_readout">-</strong></div>
+          <div><span>Emitted net</span><strong id="emitted_power_readout">-</strong></div>
+          <div><span>Conductive</span><strong id="conductive_power_readout">-</strong></div>
+          <div><span>Net</span><strong id="net_power_readout">-</strong></div>
+          <div><span>Sim time</span><strong id="sim_time_readout">-</strong></div>
+          <div><span>Total irradiance</span><strong id="irradiance_readout">-</strong></div>
+        </div>
+
+        <canvas id="slab_canvas" class="slab_canvas" width="900" height="420"></canvas>
+      </section>
+
+      <section class="plots_panel" aria-label="Simulation plots">
+        <div class="plot_block">
+          <h2>Temperature vs Time</h2>
+          <canvas id="temperature_plot" width="700" height="220"></canvas>
+        </div>
+        <div class="plot_block">
+          <h2>Power Balance</h2>
+          <canvas id="power_plot" width="700" height="220"></canvas>
+        </div>
+        <div class="plot_block">
+          <h2>Emitted Spectrum</h2>
+          <canvas id="spectrum_plot" width="700" height="220"></canvas>
+        </div>
+      </section>
+    </main>
+
+    <script src="src/simulation/constants.js"></script>
+    <script src="src/simulation/planck.js"></script>
+    <script src="src/simulation/interpolation.js"></script>
+    <script src="src/simulation/integration.js"></script>
+    <script src="src/simulation/materials.js"></script>
+    <script src="src/simulation/spectra.js"></script>
+    <script src="src/simulation/thermal_model.js"></script>
+    <script src="src/simulation/equilibrium.js"></script>
+    <script src="src/simulation/validation.js"></script>
+    <script src="src/state.js"></script>
+    <script src="src/controls.js"></script>
+    <script src="src/visualization.js"></script>
+    <script src="src/plots.js"></script>
+    <script src="src/main.js"></script>
+  </body>
+</html>
