@@ -4,8 +4,6 @@
 
 **▶ Live demo: https://jdesbonnet.github.io/radiative-balance-sim/**
 
-> **Note:** This project is still a work in progress and has not yet been fully tested or validated.
-
 ![A slab under angled illumination, glowing at 900 K and radiating thermal waves from both faces](screenshots/hero.png)
 
 An interactive, in‑browser simulator of how a flat surface reaches thermal equilibrium when
@@ -16,6 +14,10 @@ power balance, and the emitted spectrum update live while the model runs.
 
 It's meant to be **plausible and educational** rather than a high‑fidelity solver — compact,
 approximate spectra and material curves that you can edit and explore.
+
+> [!CAUTION]
+> This project is still a work in progress and has not yet been fully tested or validated.
+
 
 ---
 
