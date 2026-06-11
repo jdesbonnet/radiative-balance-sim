@@ -143,6 +143,11 @@
         points: state.history.map((sample) => ({ x: sample.sim_time_s, y: sample.conductive_power_W }))
       },
       {
+        label: "P_air",
+        color: "#a855f7",
+        points: state.history.map((sample) => ({ x: sample.sim_time_s, y: sample.convective_air_power_W }))
+      },
+      {
         label: "P_net",
         color: "#0f766e",
         points: state.history.map((sample) => ({ x: sample.sim_time_s, y: sample.net_power_W }))

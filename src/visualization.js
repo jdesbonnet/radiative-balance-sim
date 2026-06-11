@@ -464,6 +464,27 @@
       }
     }
 
+    // ---- Air convection (conduction + convection to the surrounding air) --------------
+    if (state.convection.enabled && Math.abs(powers.convective_air_power_W) > 1e-9) {
+      const into_slab = powers.convective_air_power_W > 0;
+      const color = "rgba(168, 85, 247, 0.9)";
+      const surfaces = state.environment.active_faces === "both"
+        ? ["top", "bottom"]
+        : [state.environment.active_faces];
+      const x = slab_x + slab_w + 64;
+      for (const surface of surfaces) {
+        if (surface === "bottom") {
+          const from_y = into_slab ? slab_bottom + 74 : slab_bottom + 18;
+          const to_y = into_slab ? slab_bottom + 18 : slab_bottom + 74;
+          draw_arrow(ctx, x, from_y, x, to_y, color);
+        } else {
+          const from_y = into_slab ? slab_top - 74 : slab_top - 18;
+          const to_y = into_slab ? slab_top - 18 : slab_top - 74;
+          draw_arrow(ctx, x, from_y, x, to_y, color);
+        }
+      }
+    }
+
     // ---- Labels & legend --------------------------------------------------------------
     ctx.font = "12px ui-sans-serif, system-ui";
     ctx.textBaseline = "alphabetic";

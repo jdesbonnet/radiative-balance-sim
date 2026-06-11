@@ -10,6 +10,7 @@
       absorbed_power_W: powers.absorbed_power_W,
       emitted_power_W: powers.emitted_power_W,
       conductive_power_W: powers.conductive_power_W,
+      convective_air_power_W: powers.convective_air_power_W,
       net_power_W: powers.net_power_W
     });
 
@@ -45,9 +46,14 @@
 
       if (state.running && validation.errors.length === 0) {
         let remaining_dt_s = wall_dt_s * state.playback_rate;
-        const max_internal_dt_s = 0.25;
+        // Size the sub-step to the linearised thermal time constant so the explicit-Euler
+        // step stays stable when air convection raises the effective conductance.
+        const capacity_J_K = ns.heat_capacity_J_K(state.material);
+        const g_eff_W_K = ns.effective_conductance_W_K(state);
+        const dt_stable_s = (capacity_J_K > 0 && g_eff_W_K > 0) ? 0.5 * capacity_J_K / g_eff_W_K : 0.25;
+        const max_internal_dt_s = Math.min(0.25, dt_stable_s);
         let guard = 0;
-        while (remaining_dt_s > 1e-9 && guard < 2000) {
+        while (remaining_dt_s > 1e-9 && guard < 20000) {
           const step_dt_s = Math.min(max_internal_dt_s, remaining_dt_s);
           powers = ns.advance_simulation(state, step_dt_s);
           remaining_dt_s -= step_dt_s;

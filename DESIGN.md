@@ -29,7 +29,7 @@ These decisions supersede the earlier open questions.
 - Material presets use plausible values, not authoritative measured datasets.
 - Absorptivity and emissivity are wavelength-dependent curves in version 1.
 - Radiation spectrum presets use compact approximations for now.
-- Convection is excluded from version 1.
+- Convection was excluded from version 1; version 2 adds an optional air-side heat-exchange model that lumps conduction and convection (see 4.7).
 - Keep the app simple and in-browser. Export features are deferred.
 - Use plain HTML and JavaScript for this iteration. A small library is acceptable if it materially improves plotting or UI quality.
 - Use SI units only in the interface and code.
@@ -205,10 +205,13 @@ This remains a lumped heat exchange term. It does not model a temperature profil
 At each internal simulation step:
 
 ```text
-P_net = P_abs + P_cond - P_rad_net
+P_net = P_abs + P_cond + P_air - P_rad_net
 dT = (P_net / C) * dt
 T_next = T + dT
 ```
+
+`P_air` is the optional air-side heat-exchange term (lumped conduction + convection); it is zero
+unless air convection is enabled (see 4.7).
 
 The simulation is near equilibrium when:
 
@@ -229,8 +232,97 @@ The UI should show:
 - Absorbed power in W.
 - Net emitted radiative power in W.
 - Conductive power in W, signed.
+- Air convection power in W, signed, when enabled (see 4.7).
 - Net power in W.
 - Simulated elapsed time in s.
+
+### 4.7 Air-Side Heat Exchange (Convection + Air-Film Conduction)
+
+Version 1 modelled the slab as exchanging heat only by radiation and an optional abstract solid
+conduction path. Version 2 adds an optional air-side heat-exchange term that lumps natural
+convection, forced convection, and the conduction-limited air-film floor into a single per-face
+coefficient `h`.
+
+This term is OFF by default. With it off the power balance is unchanged and the radiative-only
+equilibrium is preserved exactly.
+
+The model now couples to three independent reservoirs:
+
+- `environment.temperature_K` - the radiative sky/background (Stefan-Boltzmann sink).
+- `conduction.boundary_temperature_K` - an optional solid mount / heat sink.
+- `convection.air_temperature_K` - the surrounding air (convective sink).
+
+These are physically distinct (a clear night sky may be ~230 K radiatively while the air is ~280 K)
+and are not merged. `air_temperature_K` defaults to 293.15 K.
+
+Energy contribution, signed positive when the air is warmer than the slab:
+
+```text
+P_air = sum over active faces of  h_face * area * (air_temperature_K - T_slab)
+P_net = P_abs + P_cond + P_air - P_rad_net
+```
+
+Because `P_air` is strictly decreasing in `T_slab` (slope -sum(h*area) < 0) it keeps `P_net(T)`
+monotonic, so the bisection equilibrium solver retains a unique root.
+
+Coefficient mode: the user supplies one combined `h_coefficient_W_m2_K`, applied to every active face.
+
+Correlation mode: air properties are evaluated at the film temperature `T_film = (T_slab + T_air)/2`
+each step, scaled from 300 K / 1 atm references (k = 0.0263 W/m/K, nu = 1.589e-5 m^2/s,
+alpha = 2.25e-5 m^2/s, Pr = 0.707, beta = 1/T_film). An optional `pressure_scale` (P/P0) divides
+`nu` and `alpha` (both proportional to 1/density).
+
+```text
+Ra = g * beta * |T_slab - T_air| * L_natural^3 / (nu * alpha)
+Re = wind_speed * L_forced / nu
+```
+
+Characteristic lengths differ by mechanism: horizontal natural convection uses
+`L_natural = A/P = sqrt(area)/4` (square-plate assumption); forced flow uses `L_forced = sqrt(area)`.
+A positive `characteristic_length_m` overrides the auto value.
+
+Natural Nusselt (per face) is selected jointly by orientation AND the sign of `T_slab - T_air`:
+
+- Buoyant case (top face hot, or bottom face cold): `Nu_n = 0.54 * Ra^(1/4)` for `Ra < 1e7`,
+  else `0.15 * Ra^(1/3)`.
+- Suppressed case (top face cold, or bottom face hot): `Nu_n = 0.27 * Ra^(1/4)`.
+
+Forced Nusselt (flat plate, transition fixed at Re = 5e5, where the curve is continuous):
+
+- `Re < 5e5`:  `Nu_f = 0.664 * Re^(1/2) * Pr^(1/3)` (laminar).
+- `Re >= 5e5`: `Nu_f = (0.037 * Re^(4/5) - 871) * Pr^(1/3)` (combined laminar + turbulent).
+
+Each Nusselt is floored at 1 (the air-film conduction limit `h >= k/L`), so still air gives a finite,
+non-zero loss and the equilibrium solver does not stall at `T_slab = T_air`. Per-face coefficients
+combine transversely on `h`:
+
+```text
+h_n = Nu_n * k / L_natural
+h_f = (wind > 0) ? Nu_f * k / L_forced : 0
+h_face = (h_n^3 + h_f^3)^(1/3)
+```
+
+Only transverse/assisting mixed flow is modelled; opposing flow is out of scope. Top and bottom faces
+get different `h` because they take different natural-convection branches.
+
+Numerical note: convection raises the effective conductance and shortens the stable explicit-Euler
+step, so the integrator sizes its internal sub-step adaptively, `dt = min(0.25, 0.5 * C / G_eff)`,
+with `G_eff = 4 * eps_bar * sigma * area * T^3 * faces + G_cond + sum(h * area)`. Thin, low-rho-cp
+coatings in strong wind are the stiff case.
+
+Regime note: with radiation only, a low-emissivity polished surface (e.g. polished aluminium) settles
+HOTTER than a high-emissivity matte-black surface under the same irradiance, because it cannot radiate
+its absorbed heat away. Air convection adds a parallel, emissivity-independent loss path; under
+appreciable wind the convective term can dominate and compress or even invert that polished-vs-black
+gap. The convection toggle is therefore the key control for distinguishing radiation-limited from
+convection-limited thermal behaviour.
+
+Parameters (`state.convection`): `enabled` (false); `mode` ("coefficient" | "correlation", default
+"coefficient"); `air_temperature_K` (293.15); `h_coefficient_W_m2_K` (10); `wind_speed_m_s` (0);
+`characteristic_length_m` (0 = auto); `air_thermal_conductivity_ref_W_m_K` (0.0263);
+`air_kinematic_viscosity_ref_m2_s` (1.589e-5); `air_thermal_diffusivity_ref_m2_s` (2.25e-5);
+`air_prandtl_number` (0.707); `pressure_scale` (1.0). Constants: g = 9.80665 m/s^2,
+convection_blend_exponent = 3, transition Reynolds = 5e5.
 
 ## 5. Presets
 
@@ -685,6 +777,7 @@ Included:
 - Emitted spectrum plot.
 - Temperature and power balance plots.
 - Optional abstract conduction heat path.
+- Optional air-side heat exchange: lumped conduction plus natural and forced convection (see 4.7).
 - Playback speed controls.
 - Plausible material presets.
 - SI-only controls and readouts.
@@ -696,7 +789,7 @@ Deferred:
 - High-accuracy sourced material optical datasets.
 - High-accuracy AM0/AM1.5 reference spectra.
 - Physical support, backing plate, or mount models.
-- Convection.
+- Opposing-flow mixed convection, non-horizontal surfaces, and full turbulence modelling; only transverse natural + forced flat-plate correlations are included (see 4.7).
 - Evaporation, phase change, melting, or temperature-dependent material properties.
 - Full radiosity or view-factor modelling.
 - Cloud cover, atmospheric humidity, and time-of-day solar geometry.
@@ -710,6 +803,7 @@ Deferred:
 - Solar spectra are compact approximations.
 - Animated waves are illustrative, not a wave-optics simulation.
 - Conductive exchange is a lumped abstract heat path, not a resolved physical object.
+- Air-side heat exchange uses one lumped film coefficient per face from standard flat-plate correlations; it does not resolve the boundary-layer flow field.
 - Radiation exchange uses a simple environment temperature, not a full enclosure model.
 
 ## 15. Remaining Clarification

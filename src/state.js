@@ -39,6 +39,19 @@
         path_length_m: 0.01,
         conductor_thermal_conductivity_W_m_K: 1
       },
+      convection: {
+        enabled: false,
+        mode: "coefficient",
+        air_temperature_K: 293.15,
+        h_coefficient_W_m2_K: 10,
+        wind_speed_m_s: 0,
+        characteristic_length_m: 0,
+        air_thermal_conductivity_ref_W_m_K: 0.0263,
+        air_kinematic_viscosity_ref_m2_s: 1.589e-5,
+        air_thermal_diffusivity_ref_m2_s: 2.25e-5,
+        air_prandtl_number: 0.707,
+        pressure_scale: 1
+      },
       history: [],
       last_powers: null,
       equilibrium_temperature_K: null,

@@ -29,12 +29,24 @@
     "contact_area_m2",
     "path_length_m",
     "conductor_thermal_conductivity_W_m_K",
+    "convection_enabled",
+    "convection_mode",
+    "air_temperature_K",
+    "h_coefficient_W_m2_K",
+    "wind_speed_m_s",
+    "characteristic_length_m",
+    "air_thermal_conductivity_ref_W_m_K",
+    "air_kinematic_viscosity_ref_m2_s",
+    "air_thermal_diffusivity_ref_m2_s",
+    "air_prandtl_number",
+    "pressure_scale",
     "validation_messages",
     "temperature_readout",
     "equilibrium_readout",
     "absorbed_power_readout",
     "emitted_power_readout",
     "conductive_power_readout",
+    "convective_power_readout",
     "net_power_readout",
     "sim_time_readout",
     "irradiance_readout",
@@ -141,6 +153,18 @@
     set_number("path_length_m", state.conduction.path_length_m);
     set_number("conductor_thermal_conductivity_W_m_K", state.conduction.conductor_thermal_conductivity_W_m_K);
 
+    el.convection_enabled.checked = state.convection.enabled;
+    el.convection_mode.value = state.convection.mode;
+    set_number("air_temperature_K", state.convection.air_temperature_K);
+    set_number("h_coefficient_W_m2_K", state.convection.h_coefficient_W_m2_K);
+    set_number("wind_speed_m_s", state.convection.wind_speed_m_s);
+    set_number("characteristic_length_m", state.convection.characteristic_length_m);
+    set_number("air_thermal_conductivity_ref_W_m_K", state.convection.air_thermal_conductivity_ref_W_m_K);
+    set_number("air_kinematic_viscosity_ref_m2_s", state.convection.air_kinematic_viscosity_ref_m2_s);
+    set_number("air_thermal_diffusivity_ref_m2_s", state.convection.air_thermal_diffusivity_ref_m2_s);
+    set_number("air_prandtl_number", state.convection.air_prandtl_number);
+    set_number("pressure_scale", state.convection.pressure_scale);
+
     el.playback_rate.value = String(state.playback_rate);
     el.play_pause_button.textContent = state.running ? "Pause" : "Play";
     update_curve_plots(state);
@@ -173,6 +197,18 @@
       state.conduction.contact_area_m2 = number_value("contact_area_m2");
       state.conduction.path_length_m = number_value("path_length_m");
       state.conduction.conductor_thermal_conductivity_W_m_K = number_value("conductor_thermal_conductivity_W_m_K");
+
+      state.convection.enabled = el.convection_enabled.checked;
+      state.convection.mode = el.convection_mode.value;
+      state.convection.air_temperature_K = number_value("air_temperature_K");
+      state.convection.h_coefficient_W_m2_K = number_value("h_coefficient_W_m2_K");
+      state.convection.wind_speed_m_s = number_value("wind_speed_m_s");
+      state.convection.characteristic_length_m = number_value("characteristic_length_m");
+      state.convection.air_thermal_conductivity_ref_W_m_K = number_value("air_thermal_conductivity_ref_W_m_K");
+      state.convection.air_kinematic_viscosity_ref_m2_s = number_value("air_kinematic_viscosity_ref_m2_s");
+      state.convection.air_thermal_diffusivity_ref_m2_s = number_value("air_thermal_diffusivity_ref_m2_s");
+      state.convection.air_prandtl_number = number_value("air_prandtl_number");
+      state.convection.pressure_scale = number_value("pressure_scale");
 
       state.playback_rate = number_value("playback_rate");
 
@@ -220,6 +256,7 @@
         "absorbed_power_readout",
         "emitted_power_readout",
         "conductive_power_readout",
+        "convective_power_readout",
         "net_power_readout",
         "sim_time_readout",
         "irradiance_readout",
@@ -252,6 +289,7 @@
     el.absorbed_power_readout.textContent = format_number(powers.absorbed_power_W, "W", 3);
     el.emitted_power_readout.textContent = format_number(powers.emitted_power_W, "W", 3);
     el.conductive_power_readout.textContent = format_number(powers.conductive_power_W, "W", 3);
+    el.convective_power_readout.textContent = format_number(powers.convective_air_power_W, "W", 3);
     el.net_power_readout.textContent = format_number(powers.net_power_W, "W", 3);
     el.sim_time_readout.textContent = format_number(state.sim_time_s, "s", 2);
     el.irradiance_readout.textContent = format_number(powers.total_irradiance_W_m2, "W/m^2", 2);

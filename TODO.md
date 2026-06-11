@@ -51,3 +51,24 @@ quantity, because there is no air).
 - Add an optional **convection term** so users can watch the terrestrial flip happen as `h` rises
   (`DESIGN.md` deliberately excludes convection in v1).
 - Surface a spectrally-weighted **α_solar / ε_IR readout**, since that ratio is what predicts T_eq.
+
+## Air-side heat exchange (convection) — IMPLEMENTED in v2
+
+The optional convection model discussed above is now implemented and verified (see DESIGN.md §4.7).
+`state.convection` with **coefficient** and **correlation** (natural + forced flat-plate) modes, an
+adaptive integrator sub-step, an "Air convection" control group + readout, a `P_air` power-balance
+plot series, and visualization arrows. Adversarial multi-agent review found **no issues** in the
+air-side scope. The regime flip is reproduced: radiation-only → polished Al (126 °C) hotter than
+matte black (85 °C); with air convection → matte black hotter (e.g. wind 5 m/s: black 34 °C vs Al 22 °C).
+
+### Follow-ups (not done this session — low session credits)
+- [ ] **README**: add a short "radiation-limited vs convection-limited" note and a screenshot/GIF of
+      the flip. Headless screenshots of the *running* app were too slow under software canvas at high
+      playback this session — capture from a real browser instead.
+- [ ] **Perf nit**: `convective_h_per_face_W_m2_K()` is computed twice per step in correlation mode
+      (once for power, once for conductance). Cache it if it ever matters.
+- [ ] Fixed a pre-existing dead-code arg bug in `compute_powers` (`powers.conductance_W_K` was built
+      with the wrong argument and is unused) — consider deleting the field entirely.
+- [ ] Still parked: the polished-Al-vs-black **fun fact** as a README intro callout (left out per request).
+- [ ] Optional model extensions: opposing-flow mixed convection, vertical/inclined surfaces, turbulence,
+      and UI guidance for altitude via `pressure_scale`.

@@ -14,6 +14,7 @@
       radiation: state.radiation,
       environment: state.environment,
       conduction: state.conduction,
+      convection: state.convection,
       history: state.history
     };
   }

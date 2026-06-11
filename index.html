@@ -156,6 +156,65 @@
           </div>
         </section>
 
+        <section class="control_group">
+          <h2>Air convection</h2>
+          <label class="inline_toggle">
+            <input id="convection_enabled" type="checkbox">
+            Enable air-side heat exchange (conduction + convection)
+          </label>
+          <label>
+            Mode
+            <select id="convection_mode">
+              <option value="coefficient">Direct coefficient</option>
+              <option value="correlation">Computed (natural + forced)</option>
+            </select>
+          </label>
+          <div class="field_grid">
+            <label>
+              Air temperature K
+              <input id="air_temperature_K" type="number" min="1" step="1">
+            </label>
+            <label>
+              Coefficient h W/(m^2 K)
+              <input id="h_coefficient_W_m2_K" type="number" min="0" step="0.5">
+            </label>
+            <label>
+              Wind speed m/s
+              <input id="wind_speed_m_s" type="number" min="0" step="0.5">
+            </label>
+            <label>
+              Characteristic length m (0 = auto)
+              <input id="characteristic_length_m" type="number" min="0" step="0.001">
+            </label>
+          </div>
+          <details>
+            <summary>Advanced air properties</summary>
+            <p class="small_note">Sea-level dry air at 300 K, scaled to the film temperature. Use the pressure scale (P/P0) for altitude.</p>
+            <div class="field_grid">
+              <label>
+                Air k W/(m K)
+                <input id="air_thermal_conductivity_ref_W_m_K" type="number" min="0" step="0.001">
+              </label>
+              <label>
+                Air nu m^2/s
+                <input id="air_kinematic_viscosity_ref_m2_s" type="number" min="0" step="0.000001">
+              </label>
+              <label>
+                Air alpha m^2/s
+                <input id="air_thermal_diffusivity_ref_m2_s" type="number" min="0" step="0.000001">
+              </label>
+              <label>
+                Air Prandtl number
+                <input id="air_prandtl_number" type="number" min="0" step="0.01">
+              </label>
+              <label>
+                Pressure scale P/P0
+                <input id="pressure_scale" type="number" min="0" step="0.05">
+              </label>
+            </div>
+          </details>
+        </section>
+
         <section class="control_group validation_group">
           <h2>Status</h2>
           <div id="validation_messages" class="validation_messages">Ready.</div>
@@ -169,6 +228,7 @@
           <div><span>Absorbed</span><strong id="absorbed_power_readout">-</strong></div>
           <div><span>Emitted net</span><strong id="emitted_power_readout">-</strong></div>
           <div><span>Conductive</span><strong id="conductive_power_readout">-</strong></div>
+          <div><span>Air convection</span><strong id="convective_power_readout">-</strong></div>
           <div><span>Net</span><strong id="net_power_readout">-</strong></div>
           <div><span>Sim time</span><strong id="sim_time_readout">-</strong></div>
           <div><span>Total irradiance</span><strong id="irradiance_readout">-</strong></div>

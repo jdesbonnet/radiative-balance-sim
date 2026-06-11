@@ -74,6 +74,22 @@
       }
     }
 
+    const v = state.convection;
+    if (v && v.enabled) {
+      if (!(v.air_temperature_K > 0 && v.air_temperature_K <= 3000)) errors.push("Air temperature must be between 0 and 3000 K.");
+      if (v.mode === "coefficient") {
+        if (!(v.h_coefficient_W_m2_K >= 0)) errors.push("Convection coefficient must be non-negative.");
+      } else {
+        if (!(v.wind_speed_m_s >= 0)) errors.push("Wind speed must be non-negative.");
+        if (!(v.characteristic_length_m >= 0)) errors.push("Characteristic length must be non-negative (0 = auto).");
+        if (!(v.air_thermal_conductivity_ref_W_m_K > 0)) errors.push("Air thermal conductivity must be positive.");
+        if (!(v.air_kinematic_viscosity_ref_m2_s > 0)) errors.push("Air kinematic viscosity must be positive.");
+        if (!(v.air_thermal_diffusivity_ref_m2_s > 0)) errors.push("Air thermal diffusivity must be positive.");
+        if (!(v.air_prandtl_number > 0)) errors.push("Air Prandtl number must be positive.");
+        if (!(v.pressure_scale > 0)) errors.push("Pressure scale must be positive.");
+      }
+    }
+
     validate_curve(m.absorptivity_curve, "Absorptivity curve", errors);
     validate_curve(m.emissivity_curve, "Emissivity curve", errors);
     validate_spectrum(r.spectrum, errors);
@@ -83,6 +99,12 @@
     }
     if (state.temperature_K > 1000) {
       warnings.push("Temperature is above 1000 K; coatings and material limits may dominate.");
+    }
+    if (v && v.enabled && v.mode === "coefficient" && v.h_coefficient_W_m2_K > 200) {
+      warnings.push("Convection coefficient above 200 W/(m^2 K) is storm-wind regime; results may be unreliable.");
+    }
+    if (m.thickness_m < 1e-4) {
+      warnings.push("Thickness below 0.1 mm; thin films stress the integrator at high convection or temperature.");
     }
 
     return { errors, warnings };
