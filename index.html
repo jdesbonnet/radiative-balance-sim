@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Radiative Heat Balance Simulator</title>
+    <link rel="stylesheet" href="src/vendor/uPlot.min.css">
     <link rel="stylesheet" href="src/styles/app.css">
   </head>
   <body>
@@ -72,12 +73,12 @@
               Absorptivity curve
               <textarea id="absorptivity_curve" spellcheck="false"></textarea>
             </label>
-            <canvas id="absorptivity_curve_plot" class="mini_plot" width="320" height="90"></canvas>
+            <div id="absorptivity_curve_plot" class="mini_plot"></div>
             <label>
               Emissivity curve
               <textarea id="emissivity_curve" spellcheck="false"></textarea>
             </label>
-            <canvas id="emissivity_curve_plot" class="mini_plot" width="320" height="90"></canvas>
+            <div id="emissivity_curve_plot" class="mini_plot"></div>
           </details>
         </section>
 
@@ -208,19 +209,20 @@
       <section class="plots_panel" aria-label="Simulation plots">
         <div class="plot_block">
           <h2>Temperature vs Time</h2>
-          <canvas id="temperature_plot" width="700" height="220"></canvas>
+          <div id="temperature_plot" class="plot_host"></div>
         </div>
         <div class="plot_block">
           <h2>Power Balance</h2>
-          <canvas id="power_plot" width="700" height="220"></canvas>
+          <div id="power_plot" class="plot_host"></div>
         </div>
         <div class="plot_block">
           <h2>Emitted Spectrum</h2>
-          <canvas id="spectrum_plot" width="700" height="220"></canvas>
+          <div id="spectrum_plot" class="plot_host"></div>
         </div>
       </section>
     </main>
 
+    <script src="src/vendor/uPlot.iife.min.js"></script>
     <script src="src/simulation/constants.js"></script>
     <script src="src/simulation/planck.js"></script>
     <script src="src/simulation/interpolation.js"></script>

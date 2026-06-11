@@ -60,26 +60,34 @@
         }
       }
 
+      let equilibrium_updated = false;
       if (state.needs_equilibrium_update || now_ms - last_equilibrium_wall_ms > 1000) {
         state.equilibrium_temperature_K = validation.errors.length === 0
           ? ns.estimate_equilibrium_temperature_K(state)
           : null;
         state.needs_equilibrium_update = false;
         last_equilibrium_wall_ms = now_ms;
+        equilibrium_updated = true;
       }
 
       powers = ns.compute_powers(state);
 
+      let history_sampled = false;
       if (state.history.length === 0 || now_ms - last_history_wall_ms > 100) {
         add_history_sample(state, powers);
         last_history_wall_ms = now_ms;
+        history_sampled = true;
       }
 
       ns.update_readouts(state, powers, validation);
       ns.draw_visualization(slab_canvas, state, powers, now_ms / 1000);
-      ns.draw_temperature_plot(temperature_plot, state);
-      ns.draw_power_plot(power_plot, state);
-      ns.draw_spectrum_plot(spectrum_plot, state);
+      // Charts update on data changes (new history sample, parameter/equilibrium refresh),
+      // not every animation frame.
+      if (history_sampled || equilibrium_updated) {
+        ns.draw_temperature_plot(temperature_plot, state);
+        ns.draw_power_plot(power_plot, state);
+        ns.draw_spectrum_plot(spectrum_plot, state);
+      }
 
       requestAnimationFrame(frame);
     }

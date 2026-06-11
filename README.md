@@ -34,8 +34,10 @@ approximate spectra and material curves that you can edit and explore.
   convection from wind speed and geometry; the slab's non‑radiative loss path.
 - **Live readouts** — temperature, estimated equilibrium temperature, absorbed / emitted / convective
   / net power, and total irradiance.
-- **Plots** — temperature vs time (with the equilibrium line), the full power balance, and the
-  emitted spectrum, plus mini‑plots of the absorptivity / emissivity curves.
+- **Plots** (uPlot) — temperature vs time (with the equilibrium line), the full power balance, and
+  the emitted spectrum on a **log‑wavelength axis whose fill shows the true colour of each
+  wavelength** (a rainbow across the visible band, fading into the IR), plus mini‑plots of the
+  absorptivity / emissivity curves with the same spectral underlay.
 - **Real‑time playback** — play / pause / reset and speeds from 0.1× to 1000×.
 - **An animated stage** that makes the energy flow legible (see below).
 
@@ -117,10 +119,11 @@ src/
   plots.js                 time-series and spectrum plots
   main.js                  the requestAnimationFrame loop
   styles/app.css           layout and theme
+  vendor/                  vendored uPlot chart library (MIT)
 DESIGN.md                  design document and physics model
 ```
 
-Built with plain HTML, JavaScript, and the Canvas 2D API.
+Built with plain HTML, JavaScript, the Canvas 2D API, and the vendored [uPlot](https://github.com/leeoniya/uPlot) chart library — still no build step.
 
 ## License
 

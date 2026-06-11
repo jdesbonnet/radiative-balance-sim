@@ -65,6 +65,8 @@ matte black (85 °C); with air convection → matte black hotter (e.g. wind 5 m/
 - [ ] **README**: add a short "radiation-limited vs convection-limited" note and a screenshot/GIF of
       the flip. Headless screenshots of the *running* app were too slow under software canvas at high
       playback this session — capture from a real browser instead.
+- [ ] **Refresh README screenshots** — `interface.png`/`hero.png` predate the conduction removal and
+      the uPlot charts (log-wavelength spectrum with spectral-colour fill).
 - [ ] **Perf nit**: `convective_h_per_face_W_m2_K()` is computed twice per step in correlation mode
       (once for power, once for conductance). Cache it if it ever matters.
 - [x] Done: the dead `powers.conductance_W_K` field was removed (with the conduction feature).

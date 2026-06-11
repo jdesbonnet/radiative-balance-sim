@@ -2,185 +2,294 @@
   "use strict";
 
   const ns = global.EmissivitySim = global.EmissivitySim || {};
+  const uPlot = global.uPlot;
 
-  function nice_min_max(values, include_zero) {
-    const finite = values.filter(Number.isFinite);
-    if (finite.length === 0) {
-      return include_zero ? [0, 1] : [0, 1];
+  // One chart instance per host element, created lazily and resized via ResizeObserver.
+  const charts = new Map();
+
+  function fmt_value(value) {
+    if (value == null || !Number.isFinite(value)) {
+      return "";
     }
-    let min = Math.min.apply(null, finite);
-    let max = Math.max.apply(null, finite);
+    if (value === 0) {
+      return "0";
+    }
+    const abs = Math.abs(value);
+    if (abs < 1e-3 || abs >= 1e5) {
+      return value.toExponential(1).replace(/\.0e/, "e").replace(/e\+?(-?)0*(\d)/, "e$1$2");
+    }
+    return String(Number(value.toPrecision(4)));
+  }
+
+  function linear_axis_values(u, splits) {
+    return splits.map(fmt_value);
+  }
+
+  // On log axes label only the decades so minor splits do not clutter the axis.
+  function decade_axis_values(u, splits) {
+    return splits.map((value) => {
+      if (value == null || value <= 0) {
+        return "";
+      }
+      const exponent = Math.log10(value);
+      return Math.abs(exponent - Math.round(exponent)) < 1e-9 ? fmt_value(value) : "";
+    });
+  }
+
+  function axis_x(label, log_scale, compact) {
+    const axis = {
+      stroke: "#5d6b62",
+      font: compact ? "10px ui-sans-serif, system-ui" : "11px ui-sans-serif, system-ui",
+      labelFont: "11px ui-sans-serif, system-ui",
+      grid: { stroke: "rgba(93, 107, 98, 0.12)", width: 1 },
+      ticks: { stroke: "rgba(93, 107, 98, 0.35)", width: 1 },
+      values: log_scale ? decade_axis_values : linear_axis_values
+    };
+    if (label) {
+      axis.label = label;
+    }
+    if (compact) {
+      axis.size = 28;
+    }
+    return axis;
+  }
+
+  function axis_y(label, compact) {
+    const axis = axis_x(label, false, compact);
+    axis.size = compact ? 34 : 56;
+    return axis;
+  }
+
+  function pad_range(min, max, include_zero) {
+    if (!Number.isFinite(min) || !Number.isFinite(max)) {
+      return [0, 1];
+    }
     if (include_zero) {
       min = Math.min(min, 0);
       max = Math.max(max, 0);
     }
-    if (min === max) {
-      const pad = Math.abs(min) || 1;
-      min -= pad * 0.1;
-      max += pad * 0.1;
-    }
-    const span = max - min;
+    const span = (max - min) || Math.abs(min) || 1;
     return [min - span * 0.08, max + span * 0.08];
   }
 
-  function draw_axes(ctx, w, h, title_x, title_y) {
-    const pad = { left: 54, right: 16, top: 14, bottom: 34 };
-    ctx.strokeStyle = "#cbd8cf";
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(pad.left, pad.top);
-    ctx.lineTo(pad.left, h - pad.bottom);
-    ctx.lineTo(w - pad.right, h - pad.bottom);
-    ctx.stroke();
-
-    ctx.fillStyle = "#5d6b62";
-    ctx.font = "11px ui-sans-serif, system-ui";
-    ctx.fillText(title_y, 8, pad.top + 10);
-    ctx.fillText(title_x, w - 78, h - 10);
-    return pad;
+  function time_x_range(u, min, max) {
+    if (!Number.isFinite(min) || !Number.isFinite(max)) {
+      return [0, 1];
+    }
+    return min === max ? [min - 1, max + 1] : [min, max];
   }
 
-  function draw_line_plot(canvas, series, options) {
-    const size = ns.resize_canvas(canvas);
-    const ctx = size.ctx;
-    const w = size.width;
-    const h = size.height;
-    ctx.clearRect(0, 0, w, h);
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, w, h);
+  // The uPlot legend sits below the plotting area inside the host, so subtract its height.
+  function host_size(host, u) {
+    const width = Math.max(120, host.clientWidth || 300);
+    let legend_height = 0;
+    if (u) {
+      const legend = u.root.querySelector(".u-legend");
+      legend_height = legend ? legend.offsetHeight : 0;
+    }
+    const height = Math.max(70, (host.clientHeight || 200) - legend_height);
+    return { width, height };
+  }
 
-    const all_x = [];
-    const all_y = [];
-    for (const item of series) {
-      for (const point of item.points) {
-        all_x.push(point.x);
-        all_y.push(point.y);
+  function ensure_chart(host, build_opts) {
+    const existing = charts.get(host);
+    if (existing) {
+      return existing.u;
+    }
+    const opts = build_opts();
+    const initial = host_size(host, null);
+    opts.width = initial.width;
+    opts.height = initial.height;
+    const placeholder = [[]];
+    for (let i = 1; i < opts.series.length; i += 1) {
+      placeholder.push([]);
+    }
+    const u = new uPlot(opts, placeholder, host);
+    u.setSize(host_size(host, u));
+    let raf_id = 0;
+    const observer = new ResizeObserver(() => {
+      if (raf_id) {
+        return;
       }
-    }
-
-    const x_range = nice_min_max(all_x, false);
-    const y_range = nice_min_max(all_y, options.include_zero);
-    const pad = draw_axes(ctx, w, h, options.x_label, options.y_label);
-    const plot_w = w - pad.left - pad.right;
-    const plot_h = h - pad.top - pad.bottom;
-
-    function px(x) {
-      return pad.left + ((x - x_range[0]) / (x_range[1] - x_range[0])) * plot_w;
-    }
-
-    function py(y) {
-      return pad.top + plot_h - ((y - y_range[0]) / (y_range[1] - y_range[0])) * plot_h;
-    }
-
-    ctx.fillStyle = "#5d6b62";
-    ctx.font = "11px ui-sans-serif, system-ui";
-    ctx.fillText(x_range[0].toPrecision(3), pad.left, h - 14);
-    ctx.fillText(x_range[1].toPrecision(3), w - pad.right - 52, h - 14);
-    ctx.fillText(y_range[0].toPrecision(3), 6, h - pad.bottom);
-    ctx.fillText(y_range[1].toPrecision(3), 6, pad.top + 4);
-
-    for (const item of series) {
-      if (item.points.length < 2) {
-        continue;
-      }
-      ctx.strokeStyle = item.color;
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      item.points.forEach((point, index) => {
-        if (index === 0) ctx.moveTo(px(point.x), py(point.y));
-        else ctx.lineTo(px(point.x), py(point.y));
+      raf_id = requestAnimationFrame(() => {
+        raf_id = 0;
+        u.setSize(host_size(host, u));
       });
-      ctx.stroke();
+    });
+    observer.observe(host);
+    charts.set(host, { u, observer });
+    return u;
+  }
+
+  // Horizontal gradient that paints each wavelength with its visible colour: a rainbow across
+  // 380-780 nm, fading through deep red into a faint warm tone in the infrared and fading out
+  // in the ultraviolet. Stops are placed at the pixel position of each wavelength via the
+  // chart's own x-scale, so the gradient stays correct on the log axis and across resizes.
+  // unit_scale converts wavelength in metres to the chart's x units (1 for m, 1e9 for nm).
+  function spectral_fill(visible_alpha, ir_alpha, unit_scale) {
+    return function (u) {
+      const bbox = u.bbox;
+      if (!bbox.width) {
+        return "rgba(0, 0, 0, 0)";
+      }
+      const gradient = u.ctx.createLinearGradient(bbox.left, 0, bbox.left + bbox.width, 0);
+      let last_offset = -1;
+      const add_stop = (wavelength_m, color) => {
+        const px = u.valToPos(wavelength_m * unit_scale, "x", true);
+        let offset = (px - bbox.left) / bbox.width;
+        if (!Number.isFinite(offset)) {
+          return;
+        }
+        offset = Math.min(1, Math.max(0, offset));
+        if (offset <= last_offset) {
+          offset = Math.min(1, last_offset + 1e-4);
+        }
+        gradient.addColorStop(offset, color);
+        last_offset = offset;
+      };
+      add_stop(1e-8, "rgba(60, 20, 100, 0.03)");
+      add_stop(3.6e-7, `rgba(90, 35, 140, ${(visible_alpha * 0.4).toFixed(3)})`);
+      for (let nm = 380; nm <= 780; nm += 10) {
+        const c = ns.wavelength_to_rgb(nm);
+        add_stop(nm * 1e-9, `rgba(${c[0] | 0}, ${c[1] | 0}, ${c[2] | 0}, ${visible_alpha})`);
+      }
+      add_stop(9.0e-7, `rgba(165, 45, 25, ${Math.min(visible_alpha, ir_alpha * 1.8).toFixed(3)})`);
+      add_stop(2.5e-6, `rgba(130, 70, 45, ${ir_alpha})`);
+      add_stop(1e-3, `rgba(120, 80, 55, ${(ir_alpha * 0.6).toFixed(3)})`);
+      return gradient;
+    };
+  }
+
+  function temperature_opts() {
+    return {
+      scales: {
+        x: { time: false, range: time_x_range },
+        y: { range: (u, min, max) => pad_range(min, max, false) }
+      },
+      series: [
+        {},
+        { label: "T", stroke: "#0f766e", width: 2, points: { show: false } },
+        { label: "T_eq", stroke: "#b45309", width: 2, dash: [8, 5], points: { show: false } }
+      ],
+      axes: [axis_x("time s", false, false), axis_y("K", false)],
+      cursor: { y: false }
+    };
+  }
+
+  function power_opts() {
+    return {
+      scales: {
+        x: { time: false, range: time_x_range },
+        y: { range: (u, min, max) => pad_range(min, max, true) }
+      },
+      series: [
+        {},
+        { label: "P_abs", stroke: "#f5c542", width: 2, points: { show: false } },
+        { label: "P_rad_net", stroke: "#e4572e", width: 2, points: { show: false } },
+        { label: "P_air", stroke: "#a855f7", width: 2, points: { show: false } },
+        { label: "P_net", stroke: "#0f766e", width: 2, points: { show: false } }
+      ],
+      axes: [axis_x("time s", false, false), axis_y("W", false)],
+      cursor: { y: false }
+    };
+  }
+
+  function spectrum_opts() {
+    return {
+      scales: {
+        x: { time: false, distr: 3, log: 10 },
+        y: { range: (u, min, max) => (Number.isFinite(max) && max > 0 ? [0, max * 1.08] : [0, 1]) }
+      },
+      series: [
+        {},
+        {
+          label: "emitted",
+          stroke: "#e4572e",
+          width: 2,
+          fill: spectral_fill(0.5, 0.16, 1),
+          points: { show: false }
+        }
+      ],
+      axes: [axis_x("wavelength m", true, false), axis_y("W/m", false)],
+      cursor: { y: false }
+    };
+  }
+
+  function curve_opts(color, label) {
+    return {
+      scales: {
+        x: { time: false, distr: 3, log: 10 },
+        y: { range: () => [0, 1.05] }
+      },
+      series: [
+        {},
+        {
+          label,
+          stroke: color,
+          width: 2,
+          fill: spectral_fill(0.35, 0.1, 1e9),
+          points: { show: false }
+        }
+      ],
+      axes: [axis_x(null, true, true), axis_y(null, true)],
+      cursor: { show: false },
+      legend: { show: false }
+    };
+  }
+
+  function draw_temperature_plot(host, state) {
+    const u = ensure_chart(host, temperature_opts);
+    const equilibrium_K = Number.isFinite(state.equilibrium_temperature_K)
+      ? state.equilibrium_temperature_K
+      : null;
+    const xs = [];
+    const temperatures = [];
+    const equilibria = [];
+    for (const sample of state.history) {
+      xs.push(sample.sim_time_s);
+      temperatures.push(sample.temperature_K);
+      equilibria.push(equilibrium_K);
     }
+    u.setData([xs, temperatures, equilibria]);
+  }
 
-    let legend_x = pad.left + 8;
-    const legend_y = pad.top + 14;
-    for (const item of series) {
-      ctx.fillStyle = item.color;
-      ctx.fillRect(legend_x, legend_y - 8, 10, 3);
-      ctx.fillStyle = "#17211c";
-      ctx.fillText(item.label, legend_x + 14, legend_y - 4);
-      legend_x += ctx.measureText(item.label).width + 34;
+  function draw_power_plot(host, state) {
+    const u = ensure_chart(host, power_opts);
+    const xs = [];
+    const absorbed = [];
+    const radiated = [];
+    const air = [];
+    const net = [];
+    for (const sample of state.history) {
+      xs.push(sample.sim_time_s);
+      absorbed.push(sample.absorbed_power_W);
+      radiated.push(sample.emitted_power_W);
+      air.push(sample.convective_air_power_W);
+      net.push(sample.net_power_W);
     }
+    u.setData([xs, absorbed, radiated, air, net]);
   }
 
-  function draw_temperature_plot(canvas, state) {
-    draw_line_plot(canvas, [
-      {
-        label: "T",
-        color: "#0f766e",
-        points: state.history.map((sample) => ({ x: sample.sim_time_s, y: sample.temperature_K }))
-      },
-      {
-        label: "T_eq",
-        color: "#b45309",
-        points: state.equilibrium_temperature_K
-          ? state.history.map((sample) => ({ x: sample.sim_time_s, y: state.equilibrium_temperature_K }))
-          : []
-      }
-    ], {
-      x_label: "time s",
-      y_label: "K",
-      include_zero: false
-    });
+  function draw_spectrum_plot(host, state) {
+    const u = ensure_chart(host, spectrum_opts);
+    const samples = ns.emitted_spectrum_samples(state);
+    const xs = samples.map((point) => point.wavelength_m);
+    const ys = samples.map((point) => point.emitted_power_W_m);
+    u.setData([xs, ys]);
   }
 
-  function draw_power_plot(canvas, state) {
-    draw_line_plot(canvas, [
-      {
-        label: "P_abs",
-        color: "#f5c542",
-        points: state.history.map((sample) => ({ x: sample.sim_time_s, y: sample.absorbed_power_W }))
-      },
-      {
-        label: "P_rad_net",
-        color: "#e4572e",
-        points: state.history.map((sample) => ({ x: sample.sim_time_s, y: sample.emitted_power_W }))
-      },
-      {
-        label: "P_air",
-        color: "#a855f7",
-        points: state.history.map((sample) => ({ x: sample.sim_time_s, y: sample.convective_air_power_W }))
-      },
-      {
-        label: "P_net",
-        color: "#0f766e",
-        points: state.history.map((sample) => ({ x: sample.sim_time_s, y: sample.net_power_W }))
-      }
-    ], {
-      x_label: "time s",
-      y_label: "W",
-      include_zero: true
-    });
-  }
-
-  function draw_spectrum_plot(canvas, state) {
-    const emitted = ns.emitted_spectrum_samples(state);
-    draw_line_plot(canvas, [
-      {
-        label: "emitted",
-        color: "#e4572e",
-        points: emitted.map((point) => ({ x: point.wavelength_m, y: point.emitted_power_W_m }))
-      }
-    ], {
-      x_label: "wavelength m",
-      y_label: "W/m",
-      include_zero: true
-    });
-  }
-
-  function draw_curve_plot(canvas, curve, color, label) {
-    draw_line_plot(canvas, [
-      {
-        label,
-        color,
-        points: (curve || []).map((point) => ({ x: point.wavelength_m * 1e9, y: point.value }))
-      }
-    ], {
-      x_label: "wavelength nm",
-      y_label: "value",
-      include_zero: true
-    });
+  // Mini curve plots display wavelength in nm for readability; values stay 0..1.
+  function draw_curve_plot(host, curve, color, label) {
+    const u = ensure_chart(host, () => curve_opts(color, label));
+    const points = curve || [];
+    if (points.length === 0) {
+      u.setData([[500], [null]]);
+      return;
+    }
+    u.setData([
+      points.map((point) => point.wavelength_m * 1e9),
+      points.map((point) => point.value)
+    ]);
   }
 
   ns.draw_temperature_plot = draw_temperature_plot;

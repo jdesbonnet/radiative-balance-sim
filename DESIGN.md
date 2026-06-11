@@ -31,7 +31,7 @@ These decisions supersede the earlier open questions.
 - Radiation spectrum presets use compact approximations for now.
 - Convection was excluded from version 1; version 2 adds an optional air-side heat-exchange model that lumps conduction and convection (see 4.7).
 - Keep the app simple and in-browser. Export features are deferred.
-- Use plain HTML and JavaScript for this iteration. A small library is acceptable if it materially improves plotting or UI quality.
+- Use plain HTML and JavaScript for this iteration. A small library is acceptable if it materially improves plotting or UI quality. (Version 2 adopts the vendored uPlot library for all charts.)
 - Use SI units only in the interface and code.
 - In code and JSON, use `snake_case` field names. Do not encode units with camelCase. Preserve unit casing in unit suffixes, for example `specific_heat_J_kg_K`, not `specificHeatJKgK`.
 
@@ -483,6 +483,13 @@ Minimum plots:
 - Emitted spectrum:
   - `P_emit_spectral(lambda)` or spectral exitance.
   - Updates live as temperature changes.
+  - Logarithmic wavelength axis.
+  - The area under the curve is filled with the visible colour of each wavelength: a rainbow
+    across 380-780 nm fading through deep red into a faint warm tone in the infrared, so the
+    plot itself shows how much of the emission is visible light versus invisible IR.
+
+The material absorptivity/emissivity mini-plots use the same log wavelength axis (displayed in
+nm) and the same spectral-colour underlay.
 
 Optional plots:
 
@@ -490,7 +497,9 @@ Optional plots:
 - Absorbed spectrum.
 - Equilibrium marker on temperature plot.
 
-For a plain HTML/JavaScript implementation, use SVG or canvas directly unless a plotting library substantially reduces complexity.
+Charts are rendered with the vendored uPlot library (`src/vendor/`, MIT). Chart data is pushed
+on change (new history samples at ~10 Hz, parameter/equilibrium updates) rather than redrawn
+every animation frame; only the slab visualization canvas draws per frame.
 
 ## 9. Simulation Engine Design
 
@@ -675,6 +684,9 @@ src/
     validation.js
   styles/
     app.css
+  vendor/
+    uPlot.iife.min.js
+    uPlot.min.css
 ```
 
 Core separation:
@@ -690,7 +702,7 @@ Suggested browser technologies:
 - HTML controls for inputs and selectors.
 - CSS grid/flexbox for layout.
 - Canvas or SVG for the slab visualization.
-- Canvas or SVG for plots unless a small plotting library is clearly worth it.
+- Plots use the vendored uPlot library (canvas-based, no build step required).
 
 ## 12. Testing Strategy
 

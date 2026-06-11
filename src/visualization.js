@@ -486,5 +486,6 @@
   }
 
   ns.resize_canvas = resize_canvas;
+  ns.wavelength_to_rgb = wavelength_to_rgb;
   ns.draw_visualization = draw_visualization;
 })(window);
