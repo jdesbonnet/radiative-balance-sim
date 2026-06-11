@@ -206,11 +206,11 @@
           label: "emitted",
           stroke: "#e4572e",
           width: 2,
-          fill: spectral_fill(0.5, 0.16, 1),
+          fill: spectral_fill(0.5, 0.16, 1e9),
           points: { show: false }
         }
       ],
-      axes: [axis_x("wavelength m", true, false), axis_y("W/m", false)],
+      axes: [axis_x("wavelength nm", true, false), axis_y("W/m", false)],
       cursor: { y: false }
     };
   }
@@ -273,7 +273,7 @@
   function draw_spectrum_plot(host, state) {
     const u = ensure_chart(host, spectrum_opts);
     const samples = ns.emitted_spectrum_samples(state);
-    const xs = samples.map((point) => point.wavelength_m);
+    const xs = samples.map((point) => point.wavelength_m * 1e9);
     const ys = samples.map((point) => point.emitted_power_W_m);
     u.setData([xs, ys]);
   }
