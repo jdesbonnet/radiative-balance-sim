@@ -9,7 +9,6 @@
       temperature_K: state.temperature_K,
       absorbed_power_W: powers.absorbed_power_W,
       emitted_power_W: powers.emitted_power_W,
-      conductive_power_W: powers.conductive_power_W,
       convective_air_power_W: powers.convective_air_power_W,
       net_power_W: powers.net_power_W
     });

@@ -22,13 +22,6 @@
     "initial_temperature_K",
     "environment_temperature_K",
     "active_faces",
-    "conduction_enabled",
-    "conduction_mode",
-    "boundary_temperature_K",
-    "conductance_W_K",
-    "contact_area_m2",
-    "path_length_m",
-    "conductor_thermal_conductivity_W_m_K",
     "convection_enabled",
     "convection_mode",
     "air_temperature_K",
@@ -45,7 +38,6 @@
     "equilibrium_readout",
     "absorbed_power_readout",
     "emitted_power_readout",
-    "conductive_power_readout",
     "convective_power_readout",
     "net_power_readout",
     "sim_time_readout",
@@ -145,14 +137,6 @@
     set_number("environment_temperature_K", state.environment.temperature_K);
     el.active_faces.value = state.environment.active_faces;
 
-    el.conduction_enabled.checked = state.conduction.enabled;
-    el.conduction_mode.value = state.conduction.mode;
-    set_number("boundary_temperature_K", state.conduction.boundary_temperature_K);
-    set_number("conductance_W_K", state.conduction.conductance_W_K);
-    set_number("contact_area_m2", state.conduction.contact_area_m2);
-    set_number("path_length_m", state.conduction.path_length_m);
-    set_number("conductor_thermal_conductivity_W_m_K", state.conduction.conductor_thermal_conductivity_W_m_K);
-
     el.convection_enabled.checked = state.convection.enabled;
     el.convection_mode.value = state.convection.mode;
     set_number("air_temperature_K", state.convection.air_temperature_K);
@@ -189,14 +173,6 @@
       state.initial_temperature_K = number_value("initial_temperature_K");
       state.environment.temperature_K = number_value("environment_temperature_K");
       state.environment.active_faces = el.active_faces.value;
-
-      state.conduction.enabled = el.conduction_enabled.checked;
-      state.conduction.mode = el.conduction_mode.value;
-      state.conduction.boundary_temperature_K = number_value("boundary_temperature_K");
-      state.conduction.conductance_W_K = number_value("conductance_W_K");
-      state.conduction.contact_area_m2 = number_value("contact_area_m2");
-      state.conduction.path_length_m = number_value("path_length_m");
-      state.conduction.conductor_thermal_conductivity_W_m_K = number_value("conductor_thermal_conductivity_W_m_K");
 
       state.convection.enabled = el.convection_enabled.checked;
       state.convection.mode = el.convection_mode.value;
@@ -255,7 +231,6 @@
         "equilibrium_readout",
         "absorbed_power_readout",
         "emitted_power_readout",
-        "conductive_power_readout",
         "convective_power_readout",
         "net_power_readout",
         "sim_time_readout",
@@ -288,7 +263,6 @@
     el.equilibrium_readout.textContent = format_number(state.equilibrium_temperature_K, "K", 2);
     el.absorbed_power_readout.textContent = format_number(powers.absorbed_power_W, "W", 3);
     el.emitted_power_readout.textContent = format_number(powers.emitted_power_W, "W", 3);
-    el.conductive_power_readout.textContent = format_number(powers.conductive_power_W, "W", 3);
     el.convective_power_readout.textContent = format_number(powers.convective_air_power_W, "W", 3);
     el.net_power_readout.textContent = format_number(powers.net_power_W, "W", 3);
     el.sim_time_readout.textContent = format_number(state.sim_time_s, "s", 2);

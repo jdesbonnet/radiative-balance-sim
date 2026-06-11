@@ -30,15 +30,6 @@
         temperature_K: 293.15,
         active_faces: "both"
       },
-      conduction: {
-        enabled: false,
-        mode: "direct",
-        conductance_W_K: 0.05,
-        boundary_temperature_K: 293.15,
-        contact_area_m2: 0.001,
-        path_length_m: 0.01,
-        conductor_thermal_conductivity_W_m_K: 1
-      },
       convection: {
         enabled: false,
         mode: "coefficient",

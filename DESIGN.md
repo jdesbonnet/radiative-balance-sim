@@ -8,7 +8,7 @@ The app should make the energy balance visible in real time:
 
 - Incoming spectral radiation heats the slab according to wavelength-dependent absorptivity.
 - The slab emits thermal radiation according to its temperature and wavelength-dependent emissivity.
-- Optional conductive heat exchange can add or remove heat through the selected active surface model.
+- Optional air convection can add or remove heat through the active surface(s).
 - Temperature, emitted spectrum, and power balance update continuously while the simulation runs.
 
 The first iteration should be simple, plausible, and educational rather than a high-fidelity scientific solver. Preset values should be plausible engineering defaults. More accurate datasets can be plugged in later.
@@ -41,7 +41,7 @@ The first screen is the simulator itself.
 
 Desktop layout:
 
-- Left panel: material, geometry, radiation, environment, conduction, and playback controls.
+- Left panel: material, geometry, radiation, environment, air convection, and playback controls.
 - Center stage: animated horizontal slab with incoming illumination from above and emitted radiation leaving the active surface or surfaces.
 - Right or lower panel: live readouts and plots.
 
@@ -71,7 +71,7 @@ The slab is a horizontal rectangular plate with:
 Version 1 uses a lumped thermal capacitance model:
 
 ```text
-C dT/dt = P_abs + P_cond - P_rad_net
+C dT/dt = P_abs + P_air - P_rad_net
 C = rho * A * L * c_p
 ```
 
@@ -153,59 +153,22 @@ The visualization should emphasize:
 
 Reflected incoming radiation can be omitted from version 1 or shown only as a secondary cue. The primary observed radiation plot is the emitted spectrum.
 
-### 4.5 Conduction
+### 4.5 Conduction (removed in version 2)
 
-The app still needs a conduction term and conduction controls, but version 1 should avoid modelling a physical support, backing plate, or ambient contact. The slab can be treated as magically suspended unless the user enables a simplified conductive exchange path.
-
-Recommended version 1 interpretation:
-
-- Conduction is an optional abstract heat path between the slab and a fixed-temperature boundary.
-- The boundary is not drawn as a support or mount.
-- The conduction animation shows heat entering or leaving the selected active surface model.
-- If the user selects one active surface, conduction is associated with that surface.
-- If the user selects both active surfaces, conduction can be applied to both surfaces using a shared conductance value.
-
-Conduction power:
-
-```text
-P_cond = G_cond * (T_boundary - T)
-```
-
-where:
-
-- `G_cond` is thermal conductance in W/K.
-- `T_boundary` is the abstract boundary temperature in K.
-- Positive `P_cond` heats the slab.
-- Negative `P_cond` cools the slab.
-
-The UI can provide two equivalent input modes:
-
-Direct conductance:
-
-```text
-G_cond [W/K]
-```
-
-Geometry-based conductance:
-
-```text
-G_cond = k_cond * A_contact / d_cond
-```
-
-where:
-
-- `k_cond` is conductor thermal conductivity in W/(m K).
-- `A_contact` is contact area in m^2.
-- `d_cond` is path length in m.
-
-This remains a lumped heat exchange term. It does not model a temperature profile inside the slab.
+Earlier versions included an optional abstract solid-conduction path between the slab and a
+fixed-temperature boundary, `P_cond = G_cond * (T_boundary - T)`, with direct-conductance and
+geometry-based input modes. It was removed: the air-side heat-exchange model (§4.7) covers the
+non-radiative path, and its coefficient mode is the same linear `G * dT` form, so it subsumes the
+old conduction term. The only thing lost is a second, simultaneous non-radiative path to a different
+reservoir (e.g. air on one face and a solid mount on the other), which is out of scope. The slab is
+otherwise treated as magically suspended; its only optional non-radiative exchange is air convection.
 
 ### 4.6 Energy Balance
 
 At each internal simulation step:
 
 ```text
-P_net = P_abs + P_cond + P_air - P_rad_net
+P_net = P_abs + P_air - P_rad_net
 dT = (P_net / C) * dt
 T_next = T + dT
 ```
@@ -231,25 +194,22 @@ The UI should show:
 - Estimated equilibrium temperature in K.
 - Absorbed power in W.
 - Net emitted radiative power in W.
-- Conductive power in W, signed.
 - Air convection power in W, signed, when enabled (see 4.7).
 - Net power in W.
 - Simulated elapsed time in s.
 
 ### 4.7 Air-Side Heat Exchange (Convection + Air-Film Conduction)
 
-Version 1 modelled the slab as exchanging heat only by radiation and an optional abstract solid
-conduction path. Version 2 adds an optional air-side heat-exchange term that lumps natural
-convection, forced convection, and the conduction-limited air-film floor into a single per-face
-coefficient `h`.
+Version 1 modelled the slab as exchanging heat only by radiation. This optional air-side
+heat-exchange term adds natural convection, forced convection, and the conduction-limited air-film
+floor, lumped into a single per-face coefficient `h` — the slab's only non-radiative path.
 
 This term is OFF by default. With it off the power balance is unchanged and the radiative-only
 equilibrium is preserved exactly.
 
-The model now couples to three independent reservoirs:
+The model couples to two independent reservoirs:
 
 - `environment.temperature_K` - the radiative sky/background (Stefan-Boltzmann sink).
-- `conduction.boundary_temperature_K` - an optional solid mount / heat sink.
 - `convection.air_temperature_K` - the surrounding air (convective sink).
 
 These are physically distinct (a clear night sky may be ~230 K radiatively while the air is ~280 K)
@@ -259,7 +219,7 @@ Energy contribution, signed positive when the air is warmer than the slab:
 
 ```text
 P_air = sum over active faces of  h_face * area * (air_temperature_K - T_slab)
-P_net = P_abs + P_cond + P_air - P_rad_net
+P_net = P_abs + P_air - P_rad_net
 ```
 
 Because `P_air` is strictly decreasing in `T_slab` (slope -sum(h*area) < 0) it keeps `P_net(T)`
@@ -446,23 +406,22 @@ T_0 = 293.15 K
 active_faces = both
 ```
 
-### 6.4 Conduction
+### 6.4 Air Convection
 
-- Enable conduction toggle.
-- Direct conductance mode or geometry mode.
-- Boundary temperature `T_boundary` in K.
-- Conductance `G_cond` in W/K.
-- Contact area `A_contact` in m^2.
-- Path length `d_cond` in m.
-- Conductor thermal conductivity `k_cond` in W/(m K).
+- Enable air-side heat exchange toggle.
+- Mode: direct coefficient, or computed (natural + forced correlations).
+- Air temperature `T_air` in K.
+- Coefficient `h` in W/(m^2 K) (coefficient mode).
+- Wind speed in m/s and characteristic length in m (correlation mode).
+- Advanced: sea-level air properties (k, nu, alpha, Pr) and a pressure scale (P/P0).
 
 Default:
 
 ```text
-conduction_enabled = false
+convection_enabled = false
 ```
 
-When disabled, `P_cond = 0`.
+When disabled, `P_air = 0`. See §4.7 for the model.
 
 ### 6.5 Playback
 
@@ -483,15 +442,14 @@ The center visualization should show:
 - A horizontal slab.
 - Incoming radiation from above.
 - Emitted radiation leaving the selected emitting surface or surfaces.
-- Optional conduction heat-flow animation when conduction is enabled.
+- Optional air-convection heat-flow animation when air convection is enabled.
 - Slab color changing with temperature.
 
 Visual encodings:
 
 - Incident radiation: yellow or white downward waves/rays.
 - Emitted radiation: red/orange waves leaving the slab.
-- Conductive heat into slab: red arrows toward the slab.
-- Conductive heat out of slab: blue arrows away from the slab.
+- Air convection: purple arrows, toward the slab when the air warms it, away when it cools the slab.
 - Slab color: cool blue through neutral grey to orange/red.
 
 The animation is qualitative. Quantitative values belong in readouts and plots.
@@ -510,7 +468,7 @@ Minimum readouts:
 - Equilibrium temperature estimate in K.
 - Absorbed power `P_abs` in W.
 - Net emitted radiation power `P_rad_net` in W.
-- Conductive power `P_cond` in W.
+- Air convection power `P_air` in W.
 - Net power `P_net` in W.
 - Simulated time in s.
 
@@ -520,7 +478,7 @@ Minimum plots:
 - Power balance vs simulated time:
   - `P_abs`
   - `P_rad_net`
-  - `P_cond`
+  - `P_air`
   - `P_net`
 - Emitted spectrum:
   - `P_emit_spectral(lambda)` or spectral exitance.
@@ -552,7 +510,7 @@ const simulation_state = {
   material: material_config,
   radiation: radiation_config,
   environment: environment_config,
-  conduction: conduction_config,
+  convection: convection_config,
   history: []
 };
 ```
@@ -592,17 +550,21 @@ const environment_config = {
 };
 ```
 
-Conduction config:
+Convection config:
 
 ```js
-const conduction_config = {
+const convection_config = {
   enabled: false,
-  mode: "direct",
-  conductance_W_K: 0,
-  boundary_temperature_K: 293.15,
-  contact_area_m2: 0.0,
-  path_length_m: 0.0,
-  conductor_thermal_conductivity_W_m_K: 0.0
+  mode: "coefficient",
+  air_temperature_K: 293.15,
+  h_coefficient_W_m2_K: 10,
+  wind_speed_m_s: 0,
+  characteristic_length_m: 0,
+  air_thermal_conductivity_ref_W_m_K: 0.0263,
+  air_kinematic_viscosity_ref_m2_s: 1.589e-5,
+  air_thermal_diffusivity_ref_m2_s: 2.25e-5,
+  air_prandtl_number: 0.707,
+  pressure_scale: 1
 };
 ```
 
@@ -614,7 +576,7 @@ const sample = {
   temperature_K: 293.15,
   absorbed_power_W: 0,
   emitted_power_W: 0,
-  conductive_power_W: 0,
+  convective_air_power_W: 0,
   net_power_W: 0
 };
 ```
@@ -639,7 +601,7 @@ Explicit Euler is acceptable for version 1 if the internal time step is capped. 
 When parameters change, estimate equilibrium temperature by solving:
 
 ```text
-P_abs + P_cond(T) - P_rad_net(T) = 0
+P_abs + P_air(T) - P_rad_net(T) = 0
 ```
 
 Use bisection:
@@ -668,7 +630,7 @@ Internal and displayed units:
 - Density: kg/m^3.
 - Specific heat capacity: J/(kg K).
 - Thermal conductivity: W/(m K).
-- Conductance: W/K.
+- Convective heat transfer coefficient: W/(m^2 K).
 - Irradiance: W/m^2 or spectral W/(m^2 m).
 - Wavelength: m.
 - Time: s.
@@ -683,8 +645,7 @@ Validation:
 - Incidence angle should be 0 to 90 degrees.
 - Spectrum wavelengths must be positive and sorted.
 - Spectrum irradiance values must be non-negative.
-- Conductance must be non-negative.
-- In geometry conduction mode, contact area, path length, and conductor thermal conductivity must be positive.
+- When air convection is enabled: air temperature must be between 0 and 3000 K; the coefficient, wind speed, and characteristic length must be non-negative; air properties and pressure scale must be positive.
 
 Invalid inputs should show inline errors and pause simulation advancement until corrected.
 
@@ -739,9 +700,9 @@ Physics tests:
 - Integrated blackbody exitance approximates `sigma * T^4` within tolerance.
 - Spectrum integration gives expected total irradiance for known sample arrays.
 - Interpolation of absorptivity and emissivity curves clamps or handles edge wavelengths consistently.
-- Conductive power sign is correct:
-  - Boundary hotter than slab gives positive power.
-  - Boundary colder than slab gives negative power.
+- Air convection power sign is correct:
+  - Air hotter than slab gives positive power.
+  - Air colder than slab gives negative power.
 - Equilibrium solver returns a temperature where net power is near zero.
 
 UI tests:
@@ -758,8 +719,8 @@ Visual/manual checks:
 - Incoming radiation appears from above.
 - Emitted radiation leaves the selected surface or surfaces.
 - Emitted radiation intensity changes with temperature.
-- Conduction arrows appear only when conduction is enabled.
-- Conduction arrows reverse direction correctly.
+- Air convection arrows appear only when air convection is enabled.
+- Air convection arrows reverse direction correctly.
 - Plots update smoothly at supported playback speeds.
 
 ## 13. Version 1 Scope
@@ -776,7 +737,6 @@ Included:
 - Live emitted radiation visualization.
 - Emitted spectrum plot.
 - Temperature and power balance plots.
-- Optional abstract conduction heat path.
 - Optional air-side heat exchange: lumped conduction plus natural and forced convection (see 4.7).
 - Playback speed controls.
 - Plausible material presets.
@@ -802,16 +762,13 @@ Deferred:
 - Absorptivity and emissivity curves are compact approximations.
 - Solar spectra are compact approximations.
 - Animated waves are illustrative, not a wave-optics simulation.
-- Conductive exchange is a lumped abstract heat path, not a resolved physical object.
 - Air-side heat exchange uses one lumped film coefficient per face from standard flat-plate correlations; it does not resolve the boundary-layer flow field.
 - Radiation exchange uses a simple environment temperature, not a full enclosure model.
 
 ## 15. Remaining Clarification
 
-The only remaining design ambiguity is conduction:
-
-- The current design keeps conduction as an optional abstract heat path to a fixed-temperature boundary.
-- The slab is otherwise visually and conceptually suspended.
-- No support, mount, backing plate, or ambient contact is modelled in version 1.
-
-Please confirm whether this matches the intended meaning of "conduction" for the first implementation. If not, conduction should probably be deferred until the later through-thickness model.
+Resolved: the version 1 abstract solid-conduction path was removed in version 2 in favour of the
+air-side heat-exchange model (§4.7), which covers the non-radiative path with physically grounded
+convection. The slab is otherwise visually and conceptually suspended; no support, mount, or backing
+plate is modelled. Solid-contact conduction to a separate boundary could return later alongside a
+through-thickness model if a concrete use case arises.

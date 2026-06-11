@@ -120,43 +120,6 @@
         </section>
 
         <section class="control_group">
-          <h2>Conduction</h2>
-          <label class="inline_toggle">
-            <input id="conduction_enabled" type="checkbox">
-            Enable abstract conductive exchange
-          </label>
-          <label>
-            Mode
-            <select id="conduction_mode">
-              <option value="direct">Direct conductance</option>
-              <option value="geometry">Geometry based</option>
-            </select>
-          </label>
-          <div class="field_grid">
-            <label>
-              Boundary temperature K
-              <input id="boundary_temperature_K" type="number" min="1" step="1">
-            </label>
-            <label>
-              Conductance W/K
-              <input id="conductance_W_K" type="number" min="0" step="0.01">
-            </label>
-            <label>
-              Contact area m^2
-              <input id="contact_area_m2" type="number" min="0" step="0.0001">
-            </label>
-            <label>
-              Path length m
-              <input id="path_length_m" type="number" min="0" step="0.001">
-            </label>
-            <label>
-              Conductor k W/(m K)
-              <input id="conductor_thermal_conductivity_W_m_K" type="number" min="0" step="0.1">
-            </label>
-          </div>
-        </section>
-
-        <section class="control_group">
           <h2>Air convection</h2>
           <label class="inline_toggle">
             <input id="convection_enabled" type="checkbox">
@@ -227,7 +190,6 @@
           <div><span>Equilibrium</span><strong id="equilibrium_readout">-</strong></div>
           <div><span>Absorbed</span><strong id="absorbed_power_readout">-</strong></div>
           <div><span>Emitted net</span><strong id="emitted_power_readout">-</strong></div>
-          <div><span>Conductive</span><strong id="conductive_power_readout">-</strong></div>
           <div><span>Air convection</span><strong id="convective_power_readout">-</strong></div>
           <div><span>Net</span><strong id="net_power_readout">-</strong></div>
           <div><span>Sim time</span><strong id="sim_time_readout">-</strong></div>

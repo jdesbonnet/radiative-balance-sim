@@ -67,8 +67,14 @@ matte black (85 °C); with air convection → matte black hotter (e.g. wind 5 m/
       playback this session — capture from a real browser instead.
 - [ ] **Perf nit**: `convective_h_per_face_W_m2_K()` is computed twice per step in correlation mode
       (once for power, once for conductance). Cache it if it ever matters.
-- [ ] Fixed a pre-existing dead-code arg bug in `compute_powers` (`powers.conductance_W_K` was built
-      with the wrong argument and is unused) — consider deleting the field entirely.
+- [x] Done: the dead `powers.conductance_W_K` field was removed (with the conduction feature).
 - [ ] Still parked: the polished-Al-vs-black **fun fact** as a README intro callout (left out per request).
 - [ ] Optional model extensions: opposing-flow mixed convection, vertical/inclined surfaces, turbulence,
       and UI guidance for altitude via `pressure_scale`.
+
+## Conduction feature removed (v2)
+
+The abstract solid-conduction panel/term was removed: air convection (§4.7) covers the non-radiative
+path and its coefficient mode subsumes the old linear `G·ΔT` conduction. Radiative-only equilibria are
+unchanged. `material.thermal_conductivity_W_m_K` remains (unused) as a documented placeholder for a
+future through-thickness model.

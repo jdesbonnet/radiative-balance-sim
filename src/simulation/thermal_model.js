@@ -15,23 +15,6 @@
       material.specific_heat_J_kg_K;
   }
 
-  function conductance_W_K(conduction) {
-    if (!conduction.enabled) {
-      return 0;
-    }
-
-    if (conduction.mode === "geometry") {
-      if (conduction.path_length_m <= 0) {
-        return 0;
-      }
-      return conduction.conductor_thermal_conductivity_W_m_K *
-        conduction.contact_area_m2 /
-        conduction.path_length_m;
-    }
-
-    return conduction.conductance_W_K;
-  }
-
   function absorbed_power_W(state) {
     const angle_rad = state.radiation.incidence_angle_deg * Math.PI / 180;
     const angle_factor = Math.max(0, Math.cos(angle_rad));
@@ -41,11 +24,6 @@
       state.radiation.irradiance_scale
     );
     return state.material.area_m2 * angle_factor * absorbed_irradiance_W_m2;
-  }
-
-  function conductive_power_W(state) {
-    const g_cond_W_K = conductance_W_K(state.conduction);
-    return g_cond_W_K * (state.conduction.boundary_temperature_K - state.temperature_K);
   }
 
   function emitted_spectrum_samples(state) {
@@ -209,29 +187,26 @@
     return sum / curve.length;
   }
 
-  // Linearised total conductance to all reservoirs (radiative + solid conduction + air), used to
+  // Linearised total conductance to all reservoirs (radiative + air), used to
   // size a stable explicit-Euler sub-step: dt < 2*C/G_eff.
   function effective_conductance_W_K(state) {
     const face_count = active_face_count(state.environment.active_faces);
     const eps_bar = mean_curve_value(state.material.emissivity_curve);
     const T = state.temperature_K;
     const g_rad_W_K = 4 * eps_bar * c.stefan_boltzmann_W_m2_K4 * state.material.area_m2 * Math.pow(T, 3) * face_count;
-    return g_rad_W_K + conductance_W_K(state.conduction) + convective_conductance_W_K(state);
+    return g_rad_W_K + convective_conductance_W_K(state);
   }
 
   function compute_powers(state) {
     const p_abs_W = absorbed_power_W(state);
-    const p_cond_W = conductive_power_W(state);
     const p_air_W = convective_air_power_W(state);
     const p_rad_net_W = net_radiative_power_W(state);
     return {
       absorbed_power_W: p_abs_W,
-      conductive_power_W: p_cond_W,
       convective_air_power_W: p_air_W,
       emitted_power_W: p_rad_net_W,
-      net_power_W: p_abs_W + p_cond_W + p_air_W - p_rad_net_W,
-      total_irradiance_W_m2: total_incident_irradiance_W_m2(state),
-      conductance_W_K: conductance_W_K(state.conduction)
+      net_power_W: p_abs_W + p_air_W - p_rad_net_W,
+      total_irradiance_W_m2: total_incident_irradiance_W_m2(state)
     };
   }
 
@@ -247,9 +222,7 @@
 
   ns.active_face_count = active_face_count;
   ns.heat_capacity_J_K = heat_capacity_J_K;
-  ns.conductance_W_K = conductance_W_K;
   ns.absorbed_power_W = absorbed_power_W;
-  ns.conductive_power_W = conductive_power_W;
   ns.emitted_spectrum_samples = emitted_spectrum_samples;
   ns.net_radiative_power_W = net_radiative_power_W;
   ns.total_incident_irradiance_W_m2 = total_incident_irradiance_W_m2;

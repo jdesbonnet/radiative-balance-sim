@@ -30,8 +30,9 @@ approximate spectra and material curves that you can edit and explore.
   material presets (anodized aluminium, matte black paint, white paint, …).
 - **Thermal emission** from Planck's law, integrated over wavelength, with selectable emitting
   faces (top / bottom / both) and net exchange against the environment.
-- **Optional conductive exchange** (direct conductance or a geometry‑based model).
-- **Live readouts** — temperature, estimated equilibrium temperature, absorbed / emitted / conductive
+- **Optional air convection** — a coefficient mode (single `h`), or computed natural + forced
+  convection from wind speed and geometry; the slab's non‑radiative loss path.
+- **Live readouts** — temperature, estimated equilibrium temperature, absorbed / emitted / convective
   / net power, and total irradiance.
 - **Plots** — temperature vs time (with the equilibrium line), the full power balance, and the
   emitted spectrum, plus mini‑plots of the absorptivity / emissivity curves.
@@ -84,12 +85,12 @@ A lumped, uniform‑temperature slab of area `A` and thickness `d`:
 ```
 P_absorbed = A · cos(θ) · ∫ α(λ) · E(λ) dλ
 P_emitted  = A · n_faces · ∫ ε(λ) · [ M_bb(λ, T) − M_bb(λ, T_env) ] dλ
-P_cond     = G · (T_boundary − T)
-dT/dt      = (P_absorbed + P_cond − P_emitted) / (ρ · A · d · c_p)
+P_air      = Σ_faces h · A · (T_air − T)        (0 unless air convection is on)
+dT/dt      = (P_absorbed + P_air − P_emitted) / (ρ · A · d · c_p)
 ```
 
 where `M_bb` is the Planck spectral exitance. The slab integrates forward in time until
-`P_net → 0` (radiative/conductive equilibrium). Everything is in **SI units**. Spectra and material
+`P_net → 0` (radiative + convective equilibrium). Everything is in **SI units**. Spectra and material
 curves are compact, plausible approximations — see [`DESIGN.md`](DESIGN.md) for the full model,
 assumptions, and the rationale behind the version‑1 decisions.
 

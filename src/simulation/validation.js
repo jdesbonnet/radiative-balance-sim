@@ -51,7 +51,6 @@
     const m = state.material;
     const r = state.radiation;
     const e = state.environment;
-    const c = state.conduction;
 
     if (!(m.density_kg_m3 > 0)) errors.push("Density must be positive.");
     if (!(m.specific_heat_J_kg_K > 0)) errors.push("Specific heat must be positive.");
@@ -63,16 +62,6 @@
     if (!(e.temperature_K > 0)) errors.push("Environment temperature must be greater than 0 K.");
     if (!(r.irradiance_scale >= 0)) errors.push("Irradiance scale must be non-negative.");
     if (!(r.incidence_angle_deg >= 0 && r.incidence_angle_deg <= 90)) errors.push("Incidence angle must be 0 to 90 degrees.");
-
-    if (c.enabled) {
-      if (!(c.boundary_temperature_K > 0)) errors.push("Boundary temperature must be greater than 0 K.");
-      if (c.mode === "direct" && !(c.conductance_W_K >= 0)) errors.push("Conductance must be non-negative.");
-      if (c.mode === "geometry") {
-        if (!(c.contact_area_m2 > 0)) errors.push("Contact area must be positive.");
-        if (!(c.path_length_m > 0)) errors.push("Path length must be positive.");
-        if (!(c.conductor_thermal_conductivity_W_m_K > 0)) errors.push("Conductor thermal conductivity must be positive.");
-      }
-    }
 
     const v = state.convection;
     if (v && v.enabled) {
