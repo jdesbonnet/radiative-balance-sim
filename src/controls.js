@@ -67,7 +67,7 @@
     } else {
       formatted = value.toLocaleString(undefined, {
         maximumFractionDigits: digits === undefined ? 3 : digits,
-        minimumFractionDigits: 0
+        minimumFractionDigits: digits === undefined ? 0 : digits
       });
     }
     return `${formatted} ${unit}`;
@@ -259,13 +259,13 @@
   }
 
   function update_readouts(state, powers, validation) {
-    el.temperature_readout.textContent = format_number(state.temperature_K, "K", 2);
-    el.equilibrium_readout.textContent = format_number(state.equilibrium_temperature_K, "K", 2);
+    el.temperature_readout.textContent = format_number(state.temperature_K, "K", 1);
+    el.equilibrium_readout.textContent = format_number(state.equilibrium_temperature_K, "K", 1);
     el.absorbed_power_readout.textContent = format_number(powers.absorbed_power_W, "W", 3);
     el.emitted_power_readout.textContent = format_number(powers.emitted_power_W, "W", 3);
     el.convective_power_readout.textContent = format_number(powers.convective_air_power_W, "W", 3);
     el.net_power_readout.textContent = format_number(powers.net_power_W, "W", 3);
-    el.sim_time_readout.textContent = format_number(state.sim_time_s, "s", 2);
+    el.sim_time_readout.textContent = format_number(state.sim_time_s, "s", 1);
     el.irradiance_readout.textContent = format_number(powers.total_irradiance_W_m2, "W/m^2", 2);
 
     if (state.control_parse_error) {
