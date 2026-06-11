@@ -21,7 +21,7 @@
       material: ns.clone_material_preset(material_preset),
       radiation: {
         preset_id: spectrum_preset.id,
-        incidence_angle_deg: 0,
+        incidence_angle_deg: 30,
         irradiance_scale: 1,
         source_temperature_K: spectrum_preset.source_temperature_K,
         spectrum: spectrum_preset.create_spectrum(spectrum_preset.source_temperature_K)

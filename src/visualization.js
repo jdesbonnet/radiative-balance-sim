@@ -472,6 +472,13 @@
     ctx.fillStyle = rgba(in_color, 0.95);
     ctx.fillRect(18, 34, 26, 4);
 
+    ctx.textAlign = "right";
+    ctx.fillStyle = "rgba(226, 232, 226, 0.78)";
+    ctx.fillText("Reflected illumination", w - 18, 26);
+    ctx.fillStyle = rgba(in_color, 0.65);
+    ctx.fillRect(w - 44, 34, 26, 4);
+    ctx.textAlign = "left";
+
     ctx.fillStyle = "rgba(226, 232, 226, 0.78)";
     ctx.fillText("Emitted thermal radiation", 18, h - 26);
     ctx.fillStyle = rgba(glow_color, 0.95);

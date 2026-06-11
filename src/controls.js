@@ -261,10 +261,10 @@
   function update_readouts(state, powers, validation) {
     el.temperature_readout.textContent = format_number(state.temperature_K, "K", 1);
     el.equilibrium_readout.textContent = format_number(state.equilibrium_temperature_K, "K", 1);
-    el.absorbed_power_readout.textContent = format_number(powers.absorbed_power_W, "W", 3);
-    el.emitted_power_readout.textContent = format_number(powers.emitted_power_W, "W", 3);
-    el.convective_power_readout.textContent = format_number(powers.convective_air_power_W, "W", 3);
-    el.net_power_readout.textContent = format_number(powers.net_power_W, "W", 3);
+    el.absorbed_power_readout.textContent = format_number(powers.absorbed_power_W, "W", 1);
+    el.emitted_power_readout.textContent = format_number(powers.emitted_power_W, "W", 1);
+    el.convective_power_readout.textContent = format_number(powers.convective_air_power_W, "W", 1);
+    el.net_power_readout.textContent = format_number(powers.net_power_W, "W", 1);
     el.sim_time_readout.textContent = format_number(state.sim_time_s, "s", 1);
     el.irradiance_readout.textContent = format_number(powers.total_irradiance_W_m2, "W/m^2", 2);
 

@@ -30,7 +30,7 @@
       specific_heat_J_kg_K: 900,
       thermal_conductivity_W_m_K: 205,
       thickness_m: 0.002,
-      area_m2: 0.01,
+      area_m2: 1,
       absorptivity_curve: make_curve([0.14, 0.12, 0.09, 0.08, 0.06, 0.05, 0.04, 0.04, 0.04]),
       emissivity_curve: make_curve([0.14, 0.12, 0.09, 0.08, 0.06, 0.05, 0.04, 0.04, 0.04]),
       notes: "Plausible values for a clean polished surface."
@@ -42,7 +42,7 @@
       specific_heat_J_kg_K: 900,
       thermal_conductivity_W_m_K: 160,
       thickness_m: 0.002,
-      area_m2: 0.01,
+      area_m2: 1,
       absorptivity_curve: make_curve([0.78, 0.82, 0.84, 0.82, 0.80, 0.78, 0.76, 0.76, 0.75]),
       emissivity_curve: make_curve([0.78, 0.82, 0.84, 0.82, 0.80, 0.78, 0.76, 0.76, 0.75]),
       notes: "Representative dark anodized finish."
@@ -54,7 +54,7 @@
       specific_heat_J_kg_K: 1400,
       thermal_conductivity_W_m_K: 0.25,
       thickness_m: 0.001,
-      area_m2: 0.01,
+      area_m2: 1,
       absorptivity_curve: make_curve([0.96, 0.97, 0.97, 0.96, 0.95, 0.95, 0.94, 0.94, 0.94]),
       emissivity_curve: make_curve([0.96, 0.97, 0.97, 0.96, 0.95, 0.95, 0.94, 0.94, 0.94]),
       notes: "High absorptivity and high emissivity coating."
@@ -66,7 +66,7 @@
       specific_heat_J_kg_K: 1500,
       thermal_conductivity_W_m_K: 0.25,
       thickness_m: 0.001,
-      area_m2: 0.01,
+      area_m2: 1,
       absorptivity_curve: make_curve([0.20, 0.18, 0.16, 0.22, 0.42, 0.72, 0.88, 0.90, 0.90]),
       emissivity_curve: make_curve([0.20, 0.18, 0.16, 0.22, 0.42, 0.72, 0.88, 0.90, 0.90]),
       notes: "Low visible absorption with high thermal infrared emissivity."
@@ -78,7 +78,7 @@
       specific_heat_J_kg_K: 500,
       thermal_conductivity_W_m_K: 16,
       thickness_m: 0.002,
-      area_m2: 0.01,
+      area_m2: 1,
       absorptivity_curve: make_curve([0.45, 0.42, 0.36, 0.32, 0.27, 0.24, 0.22, 0.22, 0.22]),
       emissivity_curve: make_curve([0.45, 0.42, 0.36, 0.32, 0.27, 0.24, 0.22, 0.22, 0.22]),
       notes: "Plausible clean metallic surface."
@@ -90,7 +90,7 @@
       specific_heat_J_kg_K: 385,
       thermal_conductivity_W_m_K: 401,
       thickness_m: 0.002,
-      area_m2: 0.01,
+      area_m2: 1,
       absorptivity_curve: make_curve([0.35, 0.30, 0.23, 0.12, 0.06, 0.04, 0.035, 0.035, 0.035]),
       emissivity_curve: make_curve([0.35, 0.30, 0.23, 0.12, 0.06, 0.04, 0.035, 0.035, 0.035]),
       notes: "Plausible polished copper surface."
@@ -102,7 +102,7 @@
       specific_heat_J_kg_K: 850,
       thermal_conductivity_W_m_K: 2.5,
       thickness_m: 0.004,
-      area_m2: 0.01,
+      area_m2: 1,
       absorptivity_curve: make_curve([0.62, 0.65, 0.68, 0.72, 0.80, 0.86, 0.88, 0.88, 0.88]),
       emissivity_curve: make_curve([0.62, 0.65, 0.68, 0.72, 0.80, 0.86, 0.88, 0.88, 0.88]),
       notes: "Moderately absorptive, high-emissivity ceramic."
@@ -114,7 +114,7 @@
       specific_heat_J_kg_K: 1000,
       thermal_conductivity_W_m_K: 10,
       thickness_m: 0.002,
-      area_m2: 0.01,
+      area_m2: 1,
       absorptivity_curve: make_curve([0.50, 0.50, 0.50, 0.50, 0.50, 0.50, 0.50, 0.50, 0.50]),
       emissivity_curve: make_curve([0.50, 0.50, 0.50, 0.50, 0.50, 0.50, 0.50, 0.50, 0.50]),
       notes: "Editable baseline material."
