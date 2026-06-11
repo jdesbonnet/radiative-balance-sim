@@ -174,10 +174,10 @@
       {
         label,
         color,
-        points: (curve || []).map((point) => ({ x: point.wavelength_m, y: point.value }))
+        points: (curve || []).map((point) => ({ x: point.wavelength_m * 1e9, y: point.value }))
       }
     ], {
-      x_label: "wavelength m",
+      x_label: "wavelength nm",
       y_label: "value",
       include_zero: true
     });

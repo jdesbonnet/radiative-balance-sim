@@ -45,7 +45,7 @@
 
   function curve_to_text(curve) {
     return sort_curve(curve)
-      .map((point) => `${point.wavelength_m.toExponential(6)},${Number(point.value).toFixed(4)}`)
+      .map((point) => `${Number((point.wavelength_m * 1e9).toPrecision(8))},${Number(point.value).toFixed(4)}`)
       .join("\n");
   }
 
@@ -63,12 +63,15 @@
         throw new Error(`Could not parse curve line: ${line}`);
       }
 
-      const wavelength_m = Number(parts[0]);
+      const wavelength_value = Number(parts[0]);
       const value = Number(parts[1]);
-      if (!Number.isFinite(wavelength_m) || !Number.isFinite(value)) {
+      if (!Number.isFinite(wavelength_value) || !Number.isFinite(value)) {
         throw new Error(`Curve line has non-numeric values: ${line}`);
       }
 
+      const wavelength_m = Math.abs(wavelength_value) < 0.001
+        ? wavelength_value
+        : wavelength_value * 1e-9;
       points.push({ wavelength_m, value });
     }
 
