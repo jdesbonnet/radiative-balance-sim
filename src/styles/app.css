@@ -161,6 +161,31 @@ button:hover {
   background: var(--accent_dark);
 }
 
+.project_link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  border: 1px solid #24292f;
+  border-radius: 6px;
+  padding: 6px 12px;
+  background: #24292f;
+  color: #fff;
+  font: inherit;
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.project_link:hover {
+  background: #3b434c;
+  border-color: #3b434c;
+}
+
+.github_mark {
+  flex: 0 0 auto;
+  fill: currentColor;
+}
+
 details {
   margin-top: 12px;
 }
