@@ -170,7 +170,13 @@
       state.radiation.incidence_angle_deg = number_value("incidence_angle_deg");
       state.radiation.source_temperature_K = number_value("source_temperature_K");
 
-      state.initial_temperature_K = number_value("initial_temperature_K");
+      const next_initial_temperature_K = number_value("initial_temperature_K");
+      if (!state.running && next_initial_temperature_K !== state.initial_temperature_K) {
+        state.temperature_K = next_initial_temperature_K;
+        state.sim_time_s = 0;
+        state.history = [];
+      }
+      state.initial_temperature_K = next_initial_temperature_K;
       state.environment.temperature_K = number_value("environment_temperature_K");
       state.environment.active_faces = el.active_faces.value;
 

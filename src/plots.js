@@ -60,6 +60,20 @@
     return axis;
   }
 
+  function spectral_x_axis() {
+    return axis_x(null, true, true);
+  }
+
+  function spectral_series(label, stroke) {
+    return {
+      label,
+      stroke,
+      width: 2,
+      fill: spectral_fill(0.35, 0.1, 1e9),
+      points: { show: false }
+    };
+  }
+
   function pad_range(min, max, include_zero) {
     if (!Number.isFinite(min) || !Number.isFinite(max)) {
       return [0, 1];
@@ -202,15 +216,9 @@
       },
       series: [
         {},
-        {
-          label: "emitted",
-          stroke: "#e4572e",
-          width: 2,
-          fill: spectral_fill(0.5, 0.16, 1e9),
-          points: { show: false }
-        }
+        spectral_series("emitted", "#e4572e")
       ],
-      axes: [axis_x("wavelength nm", true, false), axis_y("W/m", false)],
+      axes: [spectral_x_axis(), axis_y("W/m", false)],
       cursor: { y: false }
     };
   }
@@ -223,15 +231,9 @@
       },
       series: [
         {},
-        {
-          label,
-          stroke: color,
-          width: 2,
-          fill: spectral_fill(0.35, 0.1, 1e9),
-          points: { show: false }
-        }
+        spectral_series(label, color)
       ],
-      axes: [axis_x(null, true, true), axis_y(null, true)],
+      axes: [spectral_x_axis(), axis_y(null, true)],
       cursor: { show: false },
       legend: { show: false }
     };

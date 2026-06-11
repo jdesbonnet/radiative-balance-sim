@@ -4,6 +4,7 @@
   const ns = global.EmissivitySim = global.EmissivitySim || {};
 
   const WIEN_B_M_K = 2.897771955e-3;
+  const CONVECTION_RGB = [168, 85, 247]; // air conduction/convection arrows and legend
 
   function resize_canvas(canvas) {
     const rect = canvas.getBoundingClientRect();
@@ -189,24 +190,54 @@
     ctx.fill();
   }
 
-  function draw_arrow(ctx, from_x, from_y, to_x, to_y, color) {
-    const angle = Math.atan2(to_y - from_y, to_x - from_x);
-    const head = 9;
+  // A row of short, straight arrows perpendicular to a face, conveying non-radiative
+  // (conduction/convection) heat exchange with the air. Deliberately stubby and marching
+  // rather than long and wavy, so they read as distinct from the radiation beams. Each
+  // little arrow drifts along the direction of heat flow -- outward (away from the
+  // surface) when the slab is shedding heat, inward when the warmer air is heating it --
+  // and fades in and out along a short track so each column reads as a continuous stream.
+  //   surf_y    : y of the face
+  //   normal_y  : outward normal in y (-1 for the top face, +1 for the bottom)
+  //   leaving   : true when heat flows out of the slab, false when it arrives
+  function draw_flow_arrows(ctx, surf_y, normal_y, leaving, x_positions, t, color, peak_alpha) {
+    const BASE = 7;          // gap between the surface and the nearest arrow
+    const TRACK = 30;        // how far from the surface the stream reaches
+    const ARROW_LEN = 13;    // length of each little arrow (shaft + head)
+    const HEAD = 5;
+    const MARCHERS = 2;      // arrows in flight per column at any moment
+    const PERIOD_S = 1.2;
+    const flow_y = leaving ? normal_y : -normal_y; // direction the arrows point and travel
     ctx.save();
-    ctx.strokeStyle = color;
-    ctx.fillStyle = color;
-    ctx.lineWidth = 2.5;
+    ctx.globalCompositeOperation = "lighter";
     ctx.lineCap = "round";
-    ctx.beginPath();
-    ctx.moveTo(from_x, from_y);
-    ctx.lineTo(to_x, to_y);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(to_x, to_y);
-    ctx.lineTo(to_x - head * Math.cos(angle - Math.PI / 6), to_y - head * Math.sin(angle - Math.PI / 6));
-    ctx.lineTo(to_x - head * Math.cos(angle + Math.PI / 6), to_y - head * Math.sin(angle + Math.PI / 6));
-    ctx.closePath();
-    ctx.fill();
+    ctx.lineWidth = 2;
+    for (let c = 0; c < x_positions.length; c += 1) {
+      const x = x_positions[c];
+      for (let m = 0; m < MARCHERS; m += 1) {
+        let prog = (t / PERIOD_S + c * 0.13 + m / MARCHERS) % 1;
+        if (prog < 0) prog += 1;
+        const fade = Math.sin(Math.PI * prog);
+        if (fade <= 0.02) continue;
+        // Arrows always live on the air side; they recede toward the surface when arriving.
+        const dist = BASE + TRACK * (leaving ? prog : 1 - prog);
+        const center_y = surf_y + normal_y * dist;
+        const tip_y = center_y + flow_y * (ARROW_LEN / 2);
+        const tail_y = center_y - flow_y * (ARROW_LEN / 2);
+        const alpha = peak_alpha * fade;
+        ctx.strokeStyle = rgba(color, alpha);
+        ctx.fillStyle = rgba(color, alpha);
+        ctx.beginPath();
+        ctx.moveTo(x, tail_y);
+        ctx.lineTo(x, tip_y);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(x, tip_y);
+        ctx.lineTo(x - HEAD * 0.6, tip_y - flow_y * HEAD);
+        ctx.lineTo(x + HEAD * 0.6, tip_y - flow_y * HEAD);
+        ctx.closePath();
+        ctx.fill();
+      }
+    }
     ctx.restore();
   }
 
@@ -444,24 +475,22 @@
     if (draw_bottom) draw_emission(slab_bottom, 1, h - slab_bottom - 16);
 
     // ---- Air convection (lumped conduction + convection to the surrounding air) -------
-    if (state.convection.enabled && Math.abs(powers.convective_air_power_W) > 1e-9) {
-      const into_slab = powers.convective_air_power_W > 0;
-      const color = "rgba(168, 85, 247, 0.9)";
-      const surfaces = state.environment.active_faces === "both"
-        ? ["top", "bottom"]
-        : [state.environment.active_faces];
-      const x = slab_x + slab_w + 34;
-      for (const surface of surfaces) {
-        if (surface === "bottom") {
-          const from_y = into_slab ? slab_bottom + 74 : slab_bottom + 18;
-          const to_y = into_slab ? slab_bottom + 18 : slab_bottom + 74;
-          draw_arrow(ctx, x, from_y, x, to_y, color);
-        } else {
-          const from_y = into_slab ? slab_top - 74 : slab_top - 18;
-          const to_y = into_slab ? slab_top - 18 : slab_top - 74;
-          draw_arrow(ctx, x, from_y, x, to_y, color);
-        }
+    // Short straight arrows spaced like the radiation rays (slotted into the incident
+    // comb, between the emitted beams) and marching along the direction of heat flow.
+    const convection_active = state.convection.enabled && Math.abs(powers.convective_air_power_W) > 1e-9;
+    const convection_leaving = powers.convective_air_power_W < 0; // slab warmer than air -> shedding heat
+    if (convection_active) {
+      const conv_face_count = state.environment.active_faces === "both" ? 2 : 1;
+      const conv_flux = state.material.area_m2 > 0
+        ? Math.abs(powers.convective_air_power_W) / (state.material.area_m2 * conv_face_count)
+        : 0;
+      const conv_alpha = 0.3 + 0.5 * flux_intensity(conv_flux);
+      const conv_xs = [];
+      for (let i = 0; i < ray_count; i += 1) {
+        conv_xs.push(slab_x + (slab_w * (i + 0.5)) / ray_count);
       }
+      if (draw_top) draw_flow_arrows(ctx, slab_top, -1, convection_leaving, conv_xs, elapsed_s, CONVECTION_RGB, conv_alpha);
+      if (draw_bottom) draw_flow_arrows(ctx, slab_bottom, 1, convection_leaving, conv_xs, elapsed_s, CONVECTION_RGB, conv_alpha);
     }
 
     // ---- Labels & legend --------------------------------------------------------------
@@ -483,6 +512,35 @@
     ctx.fillText("Emitted thermal radiation", 18, h - 26);
     ctx.fillStyle = rgba(glow_color, 0.95);
     ctx.fillRect(18, h - 20, 26, 4);
+
+    // Bottom-right: only present while air-side exchange is active. The swatch is a small
+    // straight arrow echoing the animated convection arrows -- up when the slab sheds heat
+    // to the air, down when the warmer air is heating the slab.
+    if (convection_active) {
+      ctx.textAlign = "right";
+      ctx.fillStyle = "rgba(226, 232, 226, 0.78)";
+      ctx.fillText(convection_leaving ? "Air convection (heat out)" : "Air convection (heat in)", w - 18, h - 26);
+      ctx.textAlign = "left";
+
+      const cx = w - 31;
+      const tip_y = convection_leaving ? h - 22 : h - 8;
+      const tail_y = convection_leaving ? h - 8 : h - 22;
+      const head_back = convection_leaving ? 5 : -5;
+      ctx.strokeStyle = rgba(CONVECTION_RGB, 0.95);
+      ctx.fillStyle = rgba(CONVECTION_RGB, 0.95);
+      ctx.lineWidth = 2.5;
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(cx, tail_y);
+      ctx.lineTo(cx, tip_y);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(cx, tip_y);
+      ctx.lineTo(cx - 4, tip_y + head_back);
+      ctx.lineTo(cx + 4, tip_y + head_back);
+      ctx.closePath();
+      ctx.fill();
+    }
   }
 
   ns.resize_canvas = resize_canvas;
