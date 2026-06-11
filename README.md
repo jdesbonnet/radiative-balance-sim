@@ -4,6 +4,8 @@
 
 **▶ Live demo: https://jdesbonnet.github.io/radiative-balance-sim/**
 
+> **Note:** This project is still a work in progress and has not yet been fully tested or validated.
+
 ![A slab under angled illumination, glowing at 900 K and radiating thermal waves from both faces](screenshots/hero.png)
 
 An interactive, in‑browser simulator of how a flat surface reaches thermal equilibrium when
