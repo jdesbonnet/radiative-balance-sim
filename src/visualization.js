@@ -4,7 +4,8 @@
   const ns = global.EmissivitySim = global.EmissivitySim || {};
 
   const WIEN_B_M_K = 2.897771955e-3;
-  const CONVECTION_RGB = [168, 85, 247]; // air conduction/convection arrows and legend
+  const CONVECTION_HOT_RGB = [239, 68, 68];
+  const CONVECTION_COLD_RGB = [59, 130, 246];
 
   function resize_canvas(canvas) {
     const rect = canvas.getBoundingClientRect();
@@ -190,20 +191,32 @@
     ctx.fill();
   }
 
-  // A row of short, straight arrows perpendicular to a face, conveying non-radiative
-  // (conduction/convection) heat exchange with the air. Deliberately stubby and marching
-  // rather than long and wavy, so they read as distinct from the radiation beams. Each
-  // little arrow drifts along the direction of heat flow -- outward (away from the
-  // surface) when the slab is shedding heat, inward when the warmer air is heating it --
-  // and fades in and out along a short track so each column reads as a continuous stream.
-  //   surf_y    : y of the face
-  //   normal_y  : outward normal in y (-1 for the top face, +1 for the bottom)
-  //   leaving   : true when heat flows out of the slab, false when it arrives
-  function draw_flow_arrows(ctx, surf_y, normal_y, leaving, x_positions, t, color, peak_alpha) {
+  function draw_heat_arrow(ctx, x, tail_y, tip_y, flow_y, alpha) {
+    const HEAD = 5;
+    const grad = ctx.createLinearGradient(x, tail_y, x, tip_y);
+    grad.addColorStop(0, rgba(CONVECTION_HOT_RGB, alpha));
+    grad.addColorStop(1, rgba(CONVECTION_COLD_RGB, alpha));
+    ctx.strokeStyle = grad;
+    ctx.fillStyle = rgba(CONVECTION_COLD_RGB, alpha);
+    ctx.beginPath();
+    ctx.moveTo(x, tail_y);
+    ctx.lineTo(x, tip_y);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x, tip_y);
+    ctx.lineTo(x - HEAD * 0.6, tip_y - flow_y * HEAD);
+    ctx.lineTo(x + HEAD * 0.6, tip_y - flow_y * HEAD);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  // A row of animated arrows perpendicular to a face, conveying non-radiative heat
+  // exchange with the air. Columns use the same pitch as the incident rays. Each arrow
+  // points from the hotter reservoir to the colder one: red tail, blue head.
+  function draw_flow_arrows(ctx, surf_y, normal_y, leaving, x_positions, t, peak_alpha) {
     const BASE = 7;          // gap between the surface and the nearest arrow
     const TRACK = 30;        // how far from the surface the stream reaches
     const ARROW_LEN = 13;    // length of each little arrow (shaft + head)
-    const HEAD = 5;
     const MARCHERS = 2;      // arrows in flight per column at any moment
     const PERIOD_S = 1.2;
     const flow_y = leaving ? normal_y : -normal_y; // direction the arrows point and travel
@@ -224,18 +237,7 @@
         const tip_y = center_y + flow_y * (ARROW_LEN / 2);
         const tail_y = center_y - flow_y * (ARROW_LEN / 2);
         const alpha = peak_alpha * fade;
-        ctx.strokeStyle = rgba(color, alpha);
-        ctx.fillStyle = rgba(color, alpha);
-        ctx.beginPath();
-        ctx.moveTo(x, tail_y);
-        ctx.lineTo(x, tip_y);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(x, tip_y);
-        ctx.lineTo(x - HEAD * 0.6, tip_y - flow_y * HEAD);
-        ctx.lineTo(x + HEAD * 0.6, tip_y - flow_y * HEAD);
-        ctx.closePath();
-        ctx.fill();
+        draw_heat_arrow(ctx, x, tail_y, tip_y, flow_y, alpha);
       }
     }
     ctx.restore();
@@ -489,8 +491,8 @@
       for (let i = 0; i < ray_count; i += 1) {
         conv_xs.push(slab_x + (slab_w * (i + 0.5)) / ray_count);
       }
-      if (draw_top) draw_flow_arrows(ctx, slab_top, -1, convection_leaving, conv_xs, elapsed_s, CONVECTION_RGB, conv_alpha);
-      if (draw_bottom) draw_flow_arrows(ctx, slab_bottom, 1, convection_leaving, conv_xs, elapsed_s, CONVECTION_RGB, conv_alpha);
+      if (draw_top) draw_flow_arrows(ctx, slab_top, -1, convection_leaving, conv_xs, elapsed_s, conv_alpha);
+      if (draw_bottom) draw_flow_arrows(ctx, slab_bottom, 1, convection_leaving, conv_xs, elapsed_s, conv_alpha);
     }
 
     // ---- Labels & legend --------------------------------------------------------------
@@ -525,21 +527,9 @@
       const cx = w - 31;
       const tip_y = convection_leaving ? h - 22 : h - 8;
       const tail_y = convection_leaving ? h - 8 : h - 22;
-      const head_back = convection_leaving ? 5 : -5;
-      ctx.strokeStyle = rgba(CONVECTION_RGB, 0.95);
-      ctx.fillStyle = rgba(CONVECTION_RGB, 0.95);
       ctx.lineWidth = 2.5;
       ctx.lineCap = "round";
-      ctx.beginPath();
-      ctx.moveTo(cx, tail_y);
-      ctx.lineTo(cx, tip_y);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(cx, tip_y);
-      ctx.lineTo(cx - 4, tip_y + head_back);
-      ctx.lineTo(cx + 4, tip_y + head_back);
-      ctx.closePath();
-      ctx.fill();
+      draw_heat_arrow(ctx, cx, tail_y, tip_y, convection_leaving ? -1 : 1, 0.95);
     }
   }
 
