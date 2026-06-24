@@ -31,6 +31,7 @@
     let previous_ms = performance.now();
     let last_history_wall_ms = 0;
     let last_equilibrium_wall_ms = 0;
+    let visual_elapsed_s = 0;
 
     function frame(now_ms) {
       const wall_dt_s = Math.min(0.1, Math.max(0, (now_ms - previous_ms) / 1000));
@@ -42,8 +43,11 @@
       }
 
       let powers = ns.compute_powers(state);
+      const playing = state.running && validation.errors.length === 0;
+      const visual_update_requested = state.needs_visual_update === true;
 
-      if (state.running && validation.errors.length === 0) {
+      if (playing) {
+        visual_elapsed_s += wall_dt_s;
         let remaining_dt_s = wall_dt_s * state.playback_rate;
         // Size the sub-step to the linearised thermal time constant so the explicit-Euler
         // step stays stable when air convection raises the effective conductance.
@@ -61,7 +65,7 @@
       }
 
       let equilibrium_updated = false;
-      if (state.needs_equilibrium_update || now_ms - last_equilibrium_wall_ms > 1000) {
+      if (state.needs_equilibrium_update || (playing && now_ms - last_equilibrium_wall_ms > 1000)) {
         state.equilibrium_temperature_K = validation.errors.length === 0
           ? ns.estimate_equilibrium_temperature_K(state)
           : null;
@@ -73,14 +77,17 @@
       powers = ns.compute_powers(state);
 
       let history_sampled = false;
-      if (state.history.length === 0 || now_ms - last_history_wall_ms > 100) {
+      if (state.history.length === 0 || visual_update_requested || (playing && now_ms - last_history_wall_ms > 100)) {
         add_history_sample(state, powers);
         last_history_wall_ms = now_ms;
         history_sampled = true;
       }
 
       ns.update_readouts(state, powers, validation);
-      ns.draw_visualization(slab_canvas, state, powers, now_ms / 1000);
+      if (playing || visual_update_requested) {
+        ns.draw_visualization(slab_canvas, state, powers, visual_elapsed_s);
+        state.needs_visual_update = false;
+      }
       // Charts update on data changes (new history sample, parameter/equilibrium refresh),
       // not every animation frame.
       if (history_sampled || equilibrium_updated) {

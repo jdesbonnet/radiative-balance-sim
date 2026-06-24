@@ -20,6 +20,7 @@
       playback_rate: 1,
       material: ns.clone_material_preset(material_preset),
       radiation: {
+        enabled: true,
         preset_id: spectrum_preset.id,
         incidence_angle_deg: 30,
         irradiance_scale: 1,
@@ -46,7 +47,8 @@
       history: [],
       last_powers: null,
       equilibrium_temperature_K: null,
-      needs_equilibrium_update: true
+      needs_equilibrium_update: true,
+      needs_visual_update: true
     };
   }
 

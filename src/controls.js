@@ -15,6 +15,7 @@
     "area_m2",
     "absorptivity_curve",
     "emissivity_curve",
+    "radiation_enabled",
     "radiation_preset",
     "irradiance_scale",
     "incidence_angle_deg",
@@ -101,6 +102,7 @@
     state.material = ns.clone_material_preset(preset);
     state.material.preset_id = preset.id;
     state.needs_equilibrium_update = true;
+    state.needs_visual_update = true;
     sync_controls_from_state(state);
   }
 
@@ -114,7 +116,16 @@
     state.radiation.source_temperature_K = preset.source_temperature_K;
     state.radiation.spectrum = preset.create_spectrum(preset.source_temperature_K);
     state.needs_equilibrium_update = true;
+    state.needs_visual_update = true;
     sync_controls_from_state(state);
+  }
+
+  function sync_radiation_control_state(state) {
+    const radiation_enabled = state.radiation.enabled !== false;
+    el.radiation_preset.disabled = !radiation_enabled;
+    el.irradiance_scale.disabled = !radiation_enabled;
+    el.incidence_angle_deg.disabled = !radiation_enabled;
+    el.source_temperature_K.disabled = !radiation_enabled || !selected_spectrum_preset().allows_temperature;
   }
 
   function sync_controls_from_state(state) {
@@ -127,11 +138,13 @@
     el.absorptivity_curve.value = ns.curve_to_text(state.material.absorptivity_curve);
     el.emissivity_curve.value = ns.curve_to_text(state.material.emissivity_curve);
 
+    const radiation_enabled = state.radiation.enabled !== false;
+    el.radiation_enabled.checked = radiation_enabled;
     el.radiation_preset.value = state.radiation.preset_id;
     set_number("irradiance_scale", state.radiation.irradiance_scale);
     set_number("incidence_angle_deg", state.radiation.incidence_angle_deg);
     set_number("source_temperature_K", state.radiation.source_temperature_K);
-    el.source_temperature_K.disabled = !selected_spectrum_preset().allows_temperature;
+    sync_radiation_control_state(state);
 
     set_number("initial_temperature_K", state.initial_temperature_K);
     set_number("environment_temperature_K", state.environment.temperature_K);
@@ -165,6 +178,7 @@
       state.material.absorptivity_curve = ns.parse_curve_text(el.absorptivity_curve.value);
       state.material.emissivity_curve = ns.parse_curve_text(el.emissivity_curve.value);
 
+      state.radiation.enabled = el.radiation_enabled.checked;
       state.radiation.preset_id = el.radiation_preset.value;
       state.radiation.irradiance_scale = number_value("irradiance_scale");
       state.radiation.incidence_angle_deg = number_value("incidence_angle_deg");
@@ -200,6 +214,8 @@
       }
 
       state.needs_equilibrium_update = true;
+      state.needs_visual_update = true;
+      sync_radiation_control_state(state);
       update_curve_plots(state);
     } catch (error) {
       state.control_parse_error = error.message;
@@ -212,12 +228,14 @@
     state.temperature_K = state.initial_temperature_K;
     state.history = [];
     state.needs_equilibrium_update = true;
+    state.needs_visual_update = true;
     sync_controls_from_state(state);
   }
 
   function wire_events(state) {
     el.play_pause_button.addEventListener("click", () => {
       state.running = !state.running;
+      state.needs_visual_update = true;
       sync_controls_from_state(state);
     });
 

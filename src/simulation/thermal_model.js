@@ -16,6 +16,9 @@
   }
 
   function absorbed_power_W(state) {
+    if (state.radiation.enabled === false) {
+      return 0;
+    }
     const angle_rad = state.radiation.incidence_angle_deg * Math.PI / 180;
     const angle_factor = Math.max(0, Math.cos(angle_rad));
     const absorbed_irradiance_W_m2 = ns.integrate_spectrum_with_curve_W_m2(
@@ -59,6 +62,9 @@
   }
 
   function total_incident_irradiance_W_m2(state) {
+    if (state.radiation.enabled === false) {
+      return 0;
+    }
     return ns.integrate_spectrum_irradiance_W_m2(
       state.radiation.spectrum,
       state.radiation.irradiance_scale

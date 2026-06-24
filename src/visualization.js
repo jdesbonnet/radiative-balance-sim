@@ -309,7 +309,8 @@
     const glow_norm = clamp01((temperature_K - 600) / 800);
 
     // ---- Incident illumination -------------------------------------------------------
-    const irradiance = powers.total_irradiance_W_m2;
+    const radiation_source_active = state.radiation.enabled !== false;
+    const irradiance = radiation_source_active ? powers.total_irradiance_W_m2 : 0;
     const incident_intensity = flux_intensity(irradiance);
     const in_color = incident_color(state);
     const in_period = wavelength_to_period_px(peak_wavelength_m(state.radiation.spectrum));
@@ -498,17 +499,19 @@
     // ---- Labels & legend --------------------------------------------------------------
     ctx.font = "12px ui-sans-serif, system-ui";
     ctx.textBaseline = "alphabetic";
-    ctx.fillStyle = "rgba(226, 232, 226, 0.78)";
-    ctx.fillText("Incident illumination", 18, 26);
-    ctx.fillStyle = rgba(in_color, 0.95);
-    ctx.fillRect(18, 34, 26, 4);
+    if (incident_intensity > 0.01) {
+      ctx.fillStyle = "rgba(226, 232, 226, 0.78)";
+      ctx.fillText("Incident illumination", 18, 26);
+      ctx.fillStyle = rgba(in_color, 0.95);
+      ctx.fillRect(18, 34, 26, 4);
 
-    ctx.textAlign = "right";
-    ctx.fillStyle = "rgba(226, 232, 226, 0.78)";
-    ctx.fillText("Reflected illumination", w - 18, 26);
-    ctx.fillStyle = rgba(in_color, 0.65);
-    ctx.fillRect(w - 44, 34, 26, 4);
-    ctx.textAlign = "left";
+      ctx.textAlign = "right";
+      ctx.fillStyle = "rgba(226, 232, 226, 0.78)";
+      ctx.fillText("Reflected illumination", w - 18, 26);
+      ctx.fillStyle = rgba(in_color, 0.65);
+      ctx.fillRect(w - 44, 34, 26, 4);
+      ctx.textAlign = "left";
+    }
 
     ctx.fillStyle = "rgba(226, 232, 226, 0.78)";
     ctx.fillText("Emitted thermal radiation", 18, h - 26);
